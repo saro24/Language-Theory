@@ -14,10 +14,10 @@ class Main{
         final LexicalAnalyzer analyzer = new LexicalAnalyzer(source);
         Symbol token = analyzer.nextToken();
         while(token.getType() != LexicalUnit.EOS){
-        	System.out.println(token);
         	if(token.getType() == LexicalUnit.VARNAME){
         		record(token.getValue().toString(), token.getLine());
         	}
+        	System.out.println(token);
         	token = analyzer.nextToken();
         }
         System.out.println("");
@@ -35,9 +35,11 @@ class Main{
 			int pos = variables.indexOf(var);
 			if(pos == -1){
 				for(int i = 0;i < variables.size(); i++){
+					System.out.println(variables.get(i));
 					if(var.compareTo(variables.get(i)) < 0){
 						variables.add(i, var);
 						variablePos.add(i, place);
+						break;
 					}
 				}
 				if(variables.indexOf(var) == -1){
