@@ -35,7 +35,6 @@ class Main{
 			int pos = variables.indexOf(var);
 			if(pos == -1){
 				for(int i = 0;i < variables.size(); i++){
-					System.out.println(variables.get(i));
 					if(var.compareTo(variables.get(i)) < 0){
 						variables.add(i, var);
 						variablePos.add(i, place);
