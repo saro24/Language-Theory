@@ -5,3 +5,4 @@ all:
 
 testing:
 		java -jar dist/Part1.jar test/Factorial.fs
+		java -jar dist/Part1.jar test/Sum.fs
