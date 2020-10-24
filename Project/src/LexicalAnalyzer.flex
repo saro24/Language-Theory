@@ -6,7 +6,7 @@ import java.util.ArrayList;
 %line         			//Use line counter (yyline variable)
 %column       			//Use character counter by line (yycolumn variable)
 %type Symbol    		//Says that the return type is Symbol
-%function nextToken
+%function nextToken	
 //%standalone
 
 // Return value of the program
@@ -19,8 +19,9 @@ import java.util.ArrayList;
 AlphaUpperCase  = [A-Z]
 AlphaLowerCase  = [a-z]
 Numeric         = [0-9]
+ENDLINE  		= "\n" | "\r" | "\n\r"
 ProgName		= {AlphaUpperCase}+|{AlphaUpperCase}*{AlphaLowerCase}+{Numeric}*
-VarName		    = {AlphaLowerCase}+|{AlphaLowerCase}*{Numeric}*
+VarName		    = {AlphaLowerCase}+|{AlphaLowerCase}+{Numeric}*
 Integer         = [1-9][0-9]*|0
 Decimal         = \.[0-9]*
 Exponent        = [eE]{Integer}
@@ -32,7 +33,7 @@ Number          = {Integer}{Decimal}?{Exponent}?
 "="	        	{return new Symbol(LexicalUnit.EQ,yyline, yycolumn, yytext());}
 ","	        	{return new Symbol(LexicalUnit.COMMA,yyline, yycolumn, yytext());}
 ":="	        {return new Symbol(LexicalUnit.ASSIGN,yyline, yycolumn, yytext());}
-"\n"	        {return new Symbol(LexicalUnit.ENDLINE,yyline, yycolumn, "\\n");}
+{ENDLINE}	    {return new Symbol(LexicalUnit.ENDLINE,yyline, yycolumn, "\\n");}
 ">"		        {return new Symbol(LexicalUnit.GT,yyline, yycolumn, yytext());}
 "/"		        {return new Symbol(LexicalUnit.DIVIDE,yyline, yycolumn, yytext());}
 "("		        {return new Symbol(LexicalUnit.LPAREN,yyline, yycolumn, yytext());}
