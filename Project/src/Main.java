@@ -1,11 +1,12 @@
 import java.io.File;
 import java.io.FileReader;
-import java.util.ArrayList;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.SortedMap;
 
 class Main{
 
-	private static ArrayList<String> variables = new ArrayList<String>();
-	private static ArrayList<Integer> variablePos = new ArrayList<Integer>();
+	private static SortedMap<String, Integer> variables = new TreeMap<>();
 
     public static void main(String args[]) throws java.io.IOException{
     	System.out.println("Initialising: ");
@@ -22,30 +23,14 @@ class Main{
         }
         System.out.println("");
 		System.out.println("Variables");
-		for(int i=0;i<variables.size();i++){
-			System.out.println(variables.get(i)+" "+variablePos.get(i));
+		for (Map.Entry<String, Integer> entry : variables.entrySet()) {
+			System.out.println(entry.getKey() + " " + entry.getValue());
 		}
     }
 
     private static void record(String var, int place){
-		if(variables.size() == 0){
-			variables.add(var);
-			variablePos.add(place);
-		} else{
-			int pos = variables.indexOf(var);
-			if(pos == -1){
-				for(int i = 0;i < variables.size(); i++){
-					if(var.compareTo(variables.get(i)) < 0){
-						variables.add(i, var);
-						variablePos.add(i, place);
-						break;
-					}
-				}
-				if(variables.indexOf(var) == -1){
-					variables.add(var);
-					variablePos.add(place);
-				}
-			}
+		if(! variables.containsKey(var)){
+			variables.put(var, place);
 		}
 	}
 }
