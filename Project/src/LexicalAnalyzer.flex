@@ -1,13 +1,10 @@
-import java.util.ArrayList;
-//import java_cup.runtime.*; //uncommet if you use CUP
 %%// Options of the scanner
 %class LexicalAnalyzer	//Name
 %unicode				//Use unicode
 %line         			//Use line counter (yyline variable)
 %column       			//Use character counter by line (yycolumn variable)
-%type Symbol    		//Says that the return type is Symbol
+%type Symbol 
 %function nextToken	
-//%standalone
 
 // Return value of the program
 %eofval{
@@ -55,10 +52,12 @@ Number          = {Integer}{Decimal}?{Exponent}?
 {VarName}	    {return new Symbol(LexicalUnit.VARNAME,yyline, yycolumn, yytext());}
 {ProgName}	    {return new Symbol(LexicalUnit.PROGNAME,yyline, yycolumn, yytext());}
 
-//Comments
-"//".*          { /* DO NOTHING */ }
-[/][*][^*]*[*]+([^*/][^*]*[*]+)*[/]       { /* DO NOTHING */ } 
+//Ignore comments
+"//".*          {}
+[/][*][^*]*[*]+([^*/][^*]*[*]+)*[/]       {} 
 
-// Ignore other characters
+// Ignore white spaces
 " "				{}
+
+// Print an error message if the token doesn't match any entry in the LexicalUnit list
 .               {System.out.println("ERROR  "+yytext());}

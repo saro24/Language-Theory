@@ -30,7 +30,6 @@ public class Main{
     * @throws java.io.IOException if the file given doesn't exist
     */
     public static void main(String args[]) throws java.io.IOException{
-    	System.out.println("Initialising: ");
     	File file = new File(".", args[0]);
         FileReader source = new FileReader(file);
         final LexicalAnalyzer analyzer = new LexicalAnalyzer(source);
