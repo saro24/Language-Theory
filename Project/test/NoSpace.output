@@ -1,0 +1,21 @@
+token: BEGINPROG      lexical unit: BEGINPROG
+token: IF             lexical unit: IF
+token: (              lexical unit: LPAREN
+token: -              lexical unit: MINUS
+token: 1              lexical unit: NUMBER
+token: /              lexical unit: DIVIDE
+token: Abc            lexical unit: PROGNAME
+token: /              lexical unit: DIVIDE
+token: abc            lexical unit: VARNAME
+token: /              lexical unit: DIVIDE
+ERROR  A
+ERROR  B
+ERROR  C
+token: )              lexical unit: RPAREN
+token: ENDIF          lexical unit: ENDIF
+token: ENDPROG        lexical unit: ENDPROG
+token: 0              lexical unit: NUMBER
+token: 123            lexical unit: NUMBER
+
+Variables
+abc 1

@@ -4,7 +4,7 @@ BEGINPROG Sum
    Then compare it to another number which consists of user's guess to the intended sum */
 
   READ(number)              // Read a number from user input
-  READ(guess)                // Print 1 in case user's guess was correct and 0 in case wrong
+  READ(guess)               // Print 1 in case user's guess was correct and 0 in case wrong
  sum:=0 
 WHILE (number >= 0) THEN
        sum := sum + 1
