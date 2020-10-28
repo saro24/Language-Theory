@@ -16,12 +16,9 @@ import java.util.ArrayList;
 
 // Extended Regular Expressions
 
-AlphaUpperCase  = [A-Z]
-AlphaLowerCase  = [a-z]
-Numeric         = [0-9]
 ENDLINE  		= "\n" | "\r" | "\n\r"
-ProgName		= {AlphaUpperCase}({AlphaUpperCase}|{Numeric}|{AlphaLowerCase})* 
-VarName		    = {AlphaLowerCase}({Numeric}|{AlphaLowerCase})* 
+ProgName        = [A-Z]{1}([A-Z]|[0-9])*[a-z]+([A-Z]|[0-9]|[a-z])*
+VarName		    = [a-z]{1} ([0-9]|[a-z])* 
 Integer         = [1-9][0-9]*|0
 Decimal         = \.[0-9]*
 Exponent        = [eE]{Integer}
@@ -63,4 +60,5 @@ Number          = {Integer}{Decimal}?{Exponent}?
 [/][*][^*]*[*]+([^*/][^*]*[*]+)*[/]       { /* DO NOTHING */ } 
 
 // Ignore other characters
-.               {}
+" "				{}
+.               {System.out.println("ERROR  "+yytext());}
