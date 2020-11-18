@@ -7,7 +7,7 @@ public class Symbol{
 	private final int line,column;
 
 	public Symbol(LexicalUnit unit,int line,int column,Object value){
-    	this.type	= unit;
+    this.type	= unit;
 		this.line	= line+1;
 		this.column	= column;
 		this.value	= value;

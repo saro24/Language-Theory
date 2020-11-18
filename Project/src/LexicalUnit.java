@@ -3,7 +3,6 @@ public enum LexicalUnit{
     PROGNAME,
     ENDLINE,
     ENDPROG,
-    COMMA,
     VARNAME,
     ASSIGN,
     NUMBER,
