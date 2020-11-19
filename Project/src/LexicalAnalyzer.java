@@ -733,7 +733,7 @@ class LexicalAnalyzer {
             // fall through
           case 27: break;
           case 2:
-            { return new Symbol(LexicalUnit.ENDLINE,yyline, yycolumn, "\\n");
+            { return new Symbol(LexicalUnit.ENDLINE,yyline, yycolumn, "ENDLINE");
             }
             // fall through
           case 28: break;

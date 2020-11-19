@@ -26,7 +26,7 @@ Number          = {Integer}{Decimal}?{Exponent}?
 // Relational operators
 "="	        	{return new Symbol(LexicalUnit.EQ,yyline, yycolumn, yytext());}
 ":="	        {return new Symbol(LexicalUnit.ASSIGN,yyline, yycolumn, yytext());}
-{ENDLINE}	    {return new Symbol(LexicalUnit.ENDLINE,yyline, yycolumn, "\\n");}
+{ENDLINE}	    {return new Symbol(LexicalUnit.ENDLINE,yyline, yycolumn, "ENDLINE");}
 ">"		        {return new Symbol(LexicalUnit.GT,yyline, yycolumn, yytext());}
 "/"		        {return new Symbol(LexicalUnit.DIVIDE,yyline, yycolumn, yytext());}
 "("		        {return new Symbol(LexicalUnit.LPAREN,yyline, yycolumn, yytext());}
