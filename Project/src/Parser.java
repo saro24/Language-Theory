@@ -1,4 +1,6 @@
+import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.SortedMap;
@@ -14,19 +16,18 @@ import java.util.SortedMap;
 */
 public class Parser {
 
-    private static LexicalAnalyzer analyzer;
-    private static SortedMap<String, Integer> variables = new TreeMap<>();
-    private static boolean error = false;
-    private static boolean verbose = false;
-    private static boolean write = false;
-    private static String treeFile = "";
-    public static String errorText = "";
-    public static String rulesText = "";
+    private static LexicalAnalyzer analyzer;//The Lexical Analyzer object
+    private static SortedMap<String, Integer> variables = new TreeMap<>(); //The list containing the variables
+    private static boolean error = false;   //Flag that signals if the parser has encountered an error
+    private static boolean verbose = false; //Flag that signals the user has selected the verbose option
+    public static String errorText = "";    //The message of the encountered error
+    public static String rulesText = "";    //The rules that where used during the execution
+    public static ParseTree root;
 
     /**
     * Takes as input the file to be read and uses the generated Jflex code 
     * to verify the grammar of the file
-    * @param Filereader file , boolean verbose, boolean write, String treefile
+    * @param file the scource file, verbose the verbose option, write parseTree write option, treefile the file of the ParseTree
     *
     * @throws java.io.IOException if the file given doesn't exist
     */
@@ -36,11 +37,20 @@ public class Parser {
         if(verbose){
             rulesText += "[1] <S> -> <Program>$\n";
         }else{
-            rulesText += "1,";
+            rulesText += "1 ";
         }
-        program();
+        root = new ParseTree(new Symbol(Labels.S));
+        program(root);
+        root.addChild(new ParseTree(new Symbol(LexicalUnit.EOS)));
         if(!error){
             System.out.println(rulesText);
+        }
+        if(write){
+            File output = new File(".", treeFile);
+            output.createNewFile();
+            FileWriter writer = new FileWriter(output);
+            writer.write(root.toLaTeX());
+            writer.close();
         }
     }
 
@@ -49,32 +59,39 @@ public class Parser {
     *
     * @throws java.io.IOException
     */
-    private static void program() throws java.io.IOException{
+    private static void program(ParseTree parent) throws java.io.IOException{
         if(verbose){
             rulesText += "[2] <Program> -> BEGINPROG [ProgName] [EndLine] <Code> ENDPROG\n";
         }else{
-            rulesText += "2,";
+            rulesText += "2 ";
         }
+        ParseTree tree = new ParseTree(new Symbol(Labels.PROGRAM));
+        parent.addChild(tree);
         Symbol token = analyzer.nextToken();
         if(token.getType() == LexicalUnit.BEGINPROG){
+            tree.addChild(new ParseTree(token));
             token = analyzer.nextToken();
             if(token.getType() == LexicalUnit.PROGNAME){
+                tree.addChild(new ParseTree(token));
                 token = analyzer.nextToken();
                 if(token.getType() == LexicalUnit.ENDLINE){
-                    token = code();
+                    tree.addChild(new ParseTree(token));
+                    token = code(tree);
                     if(!error){
                         if(token.getType() != LexicalUnit.ENDPROG){
-                            errorMessage("ENDPROG", token.getValue().toString(), token.getLine(), token.getColumn());
+                            errorMessage("ENDPROG", token.getType().toString(), token.getLine(), token.getColumn());
+                        }else{
+                            tree.addChild(new ParseTree(token));
                         }
                     }
                 }else{
-                    errorMessage("ENDLINE", token.getValue().toString(), token.getLine(), token.getColumn());
+                    errorMessage("ENDLINE", token.getType().toString(), token.getLine(), token.getColumn());
                 }
             }else{
-                errorMessage("PROGNAME", token.getValue().toString(), token.getLine(), token.getColumn());
+                errorMessage("PROGNAME", token.getType().toString(), token.getLine(), token.getColumn());
             }
         }else{
-            errorMessage("BEGINPROG", token.getValue().toString(), token.getLine(), token.getColumn());
+            errorMessage("BEGINPROG", token.getType().toString(), token.getLine(), token.getColumn());
         }
     }
 
@@ -83,29 +100,30 @@ public class Parser {
     *
     * @throws java.io.IOException
     */
-    private static Symbol code() throws java.io.IOException{
+    private static Symbol code(ParseTree parent) throws java.io.IOException{
         Symbol token = analyzer.nextToken();
         if(!error){
-            while(token.getType() != LexicalUnit.ENDPROG & token.getType() != LexicalUnit.EOS & token.getType() != LexicalUnit.ENDWHILE & token.getType() != LexicalUnit.ENDIF){
+            while(token.getType() != LexicalUnit.ENDPROG & token.getType() != LexicalUnit.EOS & token.getType() != LexicalUnit.ENDWHILE & token.getType() != LexicalUnit.ENDIF & token.getType() != LexicalUnit.ELSE){
                 if(token.getType() != LexicalUnit.ENDLINE){
                     if(verbose){
                         rulesText += "[3] <Code> -> <Instruction> [EndLine] <Code>\n";
                     }else{
-                        rulesText += "3,";
+                        rulesText += "3 ";
                     }
-                    instruction(token);
+                    ParseTree tree = new ParseTree(new Symbol(Labels.CODE));
+                    parent.addChild(tree);
+                    instruction(tree, token);
                 }
                 if(!error){
                     token = analyzer.nextToken();
                 }else{
                     break;
                 }
-                
             }
             if(verbose){
                 rulesText += "[4] <Code> -> e\n";
             }else{
-                rulesText += "4,";
+                rulesText += "4 ";
             }
         }
         return token;
@@ -116,49 +134,51 @@ public class Parser {
     *
     * @throws java.io.IOException 
     */
-    private static void instruction(Symbol token) throws java.io.IOException{
+    private static void instruction(ParseTree parent, Symbol token) throws java.io.IOException{
         if(!error){
+            ParseTree tree = new ParseTree(new Symbol(Labels.INSTRUCTION));
+            parent.addChild(tree);
             LexicalUnit tok = token.getType();
             switch (tok){
             case VARNAME:
                 if(verbose){
                     rulesText += "[5] <Instruction> -> <Assign>\n";
                 }else{
-                    rulesText += "5,";
+                    rulesText += "5 ";
                 }
-                assign(token);
+                assign(tree, token);
                 break ;
             case IF:
                 if(verbose){
                     rulesText += "[6] <Instruction> -> <If>\n";
                 }else{
-                    rulesText += "6,";
+                    rulesText += "6 ";
                 }
-                ifs();
+                ifs(tree);
                 break ;
             case WHILE:
                 if(verbose){
                     rulesText += "[7] <Instruction> -> <While>\n";
                 }else{
-                    rulesText += "7,";
+                    rulesText += "7 ";
                 }
-                whiles();
+                whiles(tree, token);
                 break ;
             case PRINT:
                 if(verbose){
                     rulesText += "[8] <Instruction> -> <Print>\n";
                 }else{
-                    rulesText += "8,";
+                    rulesText += "8 ";
                 }
-                prints();
+                prints(tree);
                 break ;
             case READ:
                 if(verbose){
                     rulesText += "[9] <Instruction> -> <Read>\n";
                 }else{
-                    rulesText += "9,";
+                    rulesText += "9 ";
                 }
-                reads();
+                reads(tree);
                 break ;
             }
         }
@@ -169,19 +189,23 @@ public class Parser {
     *
     * @throws java.io.IOException
     */
-    private static void assign(Symbol token) throws java.io.IOException{
+    private static void assign(ParseTree parent, Symbol token) throws java.io.IOException{
         if(!error){
             if(verbose){
                 rulesText += "[10] <Assign> -> [VarName] := <ExprArith>\n";
             }else{
-                rulesText += "10,";
+                rulesText += "10 ";
             }
+            ParseTree tree = new ParseTree(new Symbol(Labels.ASSIGN));
+            parent.addChild(tree);
+            tree.addChild(new ParseTree(token));
             record(token.getValue().toString(), token.getLine());
             token = analyzer.nextToken();
             if(token.getType() == LexicalUnit.ASSIGN){
-                exprArith();
+                tree.addChild(new ParseTree(token));
+                exprArith(tree);
             }else{
-                errorMessage(":=", token.getValue().toString(), token.getLine(), token.getColumn());
+                errorMessage("ASSIGN", token.getType().toString(), token.getLine(), token.getColumn());
             }
         }
     }
@@ -191,16 +215,18 @@ public class Parser {
     *
     * @throws java.io.IOException 
     */
-    private static Symbol exprArith() throws java.io.IOException{
+    private static Symbol exprArith(ParseTree parent) throws java.io.IOException{
         Symbol token = new Symbol(LexicalUnit.EOS);
         if(!error){
             if(verbose){
                 rulesText += "[11] <ExprArith > -> <ExprArith'> < ExprArith''>\n";
             }else{
-                rulesText += "11,";
+                rulesText += "11 ";
             }
-            token = exprArith1();
-            token = exprArith2(token);
+            ParseTree tree = new ParseTree(new Symbol(Labels.EXPRARITH));
+            parent.addChild(tree);
+            token = exprArith1(tree);
+            token = exprArith2(tree, token);
         }
         return token;
     }
@@ -210,15 +236,17 @@ public class Parser {
     *
     * @throws java.io.IOException
     */
-    private static Symbol exprArith1() throws java.io.IOException{
+    private static Symbol exprArith1(ParseTree parent) throws java.io.IOException{
         Symbol token = new Symbol(LexicalUnit.EOS);
         if(!error){
             if(verbose){
                 rulesText += "[15] <ExprArith'> -> <Multiplication>\n";
             }else{
-                rulesText += "15,";
+                rulesText += "15 ";
             }
-            token = multiplication();
+            ParseTree tree = new ParseTree(new Symbol(Labels.EXPRARITH1));
+            parent.addChild(tree);
+            token = multiplication(tree);
         }
         return token;
     }
@@ -228,30 +256,35 @@ public class Parser {
     *
     * @throws java.io.IOException
     */
-    private static Symbol exprArith2(Symbol token) throws java.io.IOException{
+    private static Symbol exprArith2(ParseTree parent, Symbol token) throws java.io.IOException{
         if(!error){
+            ParseTree tree = new ParseTree(new Symbol(Labels.EXPRARITH2));
+            parent.addChild(tree);
             if(token.getType() == LexicalUnit.PLUS){
                 if(verbose){
                     rulesText += "[12] <ExprArith''> -> + <Multiplication>< ExprArith''>\n";
                 }else{
-                    rulesText += "12,";
+                    rulesText += "12 ";
                 }
-                token = multiplication();
-                token = exprArith2(token);
+                tree.addChild(new ParseTree(token));
+                token = multiplication(tree);
+                token = exprArith2(tree, token);
             }else if(token.getType() == LexicalUnit.MINUS){
                 if(verbose){
                     rulesText += "[13] <ExprArith''> -> - <Multiplication>< ExprArith''>\n";
                 }else{
-                    rulesText += "13,";
+                    rulesText += "13 ";
                 }
-                token = multiplication();
-                token = exprArith2(token);
+                tree.addChild(new ParseTree(token));
+                token = multiplication(tree);
+                token = exprArith2(tree, token);
             }else{
                 if(verbose){
                     rulesText += "[14] <ExprArith''> -> e\n";
                 }else{
-                    rulesText += "14,";
+                    rulesText += "14 ";
                 }
+                tree.addChild(new ParseTree(new Symbol(LexicalUnit.EOS)));
             }
         }
         return token;
@@ -262,16 +295,18 @@ public class Parser {
     *
     * @throws java.io.IOException
     */
-    private static Symbol multiplication() throws java.io.IOException{
+    private static Symbol multiplication(ParseTree parent) throws java.io.IOException{
         Symbol token = new Symbol(LexicalUnit.EOS);
         if(!error){
             if(verbose){
                 rulesText += "[16] <Multiplication> -> <Multiplication'> <Multiplication''>\n";
             }else{
-                rulesText += "16,";
+                rulesText += "16 ";
             }
-            multiplication1();
-            token = multiplication2();
+            ParseTree tree = new ParseTree(new Symbol(Labels.MULTIPLICATION));
+            parent.addChild(tree);
+            multiplication1(tree);
+            token = multiplication2(tree);
         }
         return token;
     }
@@ -281,14 +316,16 @@ public class Parser {
     *
     * @throws java.io.IOException
     */
-    private static void multiplication1() throws java.io.IOException{
+    private static void multiplication1(ParseTree parent) throws java.io.IOException{
         if(!error){
             if(verbose){
                 rulesText += "[20] <Multiplication'> -> <Bracket>\n";
             }else{
-                rulesText += "20,";
+                rulesText += "20 ";
             }
-            bracket();
+            ParseTree tree = new ParseTree(new Symbol(Labels.MULTIPLICATION1));
+            parent.addChild(tree);
+            bracket(tree);
         }
     }
 
@@ -297,31 +334,36 @@ public class Parser {
     *
     * @throws java.io.IOException
     */
-    private static Symbol multiplication2() throws java.io.IOException{
+    private static Symbol multiplication2(ParseTree parent) throws java.io.IOException{
         Symbol token = analyzer.nextToken();
         if(!error){
+            ParseTree tree = new ParseTree(new Symbol(Labels.MULTIPLICATION2));
+            parent.addChild(tree);
             if(token.getType() == LexicalUnit.TIMES){
                 if(verbose){
                     rulesText += "[17] <Multiplication''> -> * <Braquet> <Multiplication''>\n";
                 }else{
-                    rulesText += "17,";
+                    rulesText += "17 ";
                 }
-                bracket();
-                token = multiplication2();
+                tree.addChild(new ParseTree(token));
+                bracket(tree);
+                token = multiplication2(tree);
             }else if(token.getType() == LexicalUnit.DIVIDE){
                 if(verbose){
                     rulesText += "[18] <Multiplication''> -> / <Braquet> <Multiplication''>\n";
                 }else{
-                    rulesText += "18,";
+                    rulesText += "18 ";
                 }
-                bracket();
-                token = multiplication2();
+                tree.addChild(new ParseTree(token));
+                bracket(tree);
+                token = multiplication2(tree);
             }else{
                 if(verbose){
                     rulesText += "[19] <Multiplication''> -> e\n";
                 }else{
-                    rulesText += "19,";
+                    rulesText += "19 ";
                 }
+                tree.addChild(new ParseTree(new Symbol(LexicalUnit.EOS)));
             }
         }
         return token;
@@ -332,28 +374,33 @@ public class Parser {
     *
     * @throws java.io.IOException
     */
-    private static void bracket() throws java.io.IOException{
+    private static void bracket(ParseTree parent) throws java.io.IOException{
         if(!error){
+            ParseTree tree = new ParseTree(new Symbol(Labels.BRACKET));
+            parent.addChild(tree);
             Symbol token = analyzer.nextToken();
             if(token.getType() == LexicalUnit.LPAREN){
                 if(verbose){
                     rulesText += "[21] <Bracket> -> (ExprArith)\n";
                 }else{
-                    rulesText += "21,";
+                    rulesText += "21 ";
                 }
-                token = exprArith();
+                tree.addChild(new ParseTree(token));
+                token = exprArith(tree);
                 if(!error){
                     if(token.getType() != LexicalUnit.RPAREN){
-                        errorMessage(")", token.getValue().toString(), token.getLine(), token.getColumn());
+                        errorMessage(")", token.getType().toString(), token.getLine(), token.getColumn());
+                    }else{
+                        tree.addChild(new ParseTree(token));
                     }
                 }
             }else{
                 if(verbose){
                     rulesText += "[22] <Bracket> -> <Var>\n";
                 }else{
-                    rulesText += "22,";
+                    rulesText += "22 ";
                 }
-                variable(token);
+                variable(tree, token);
             }
         }
     }
@@ -363,31 +410,36 @@ public class Parser {
     *
     * @throws java.io.IOException
     */
-    private static void variable(Symbol token) throws java.io.IOException{
+    private static void variable(ParseTree parent, Symbol token) throws java.io.IOException{
         if(!error){
+            ParseTree tree = new ParseTree(new Symbol(Labels.VAR));
+            parent.addChild(tree);
             if(token.getType() == LexicalUnit.MINUS){
                 if(verbose){
                     rulesText += "[25] <Var> -> - <Var>\n";
                 }else{
-                    rulesText += "25,";
+                    rulesText += "25 ";
                 }
+                tree.addChild(new ParseTree(token));
                 token = analyzer.nextToken();
-                variable(token);
+                variable(tree, token);
             }else{
                 if(token.getType() == LexicalUnit.VARNAME){
                     if(verbose){
                         rulesText += "[23] <Var> -> [VarName]\n";
                     }else{
-                        rulesText += "23,";
+                        rulesText += "23 ";
                     }
+                    tree.addChild(new ParseTree(token));
                 }else if(token.getType() == LexicalUnit.NUMBER){
                     if(verbose){
                         rulesText += "[24] <Var> -> [Number]\n";
                     }else{
-                        rulesText += "24,";
+                        rulesText += "24 ";
                     }
+                    tree.addChild(new ParseTree(token));
                 }else{
-                    errorMessage("variable or number", token.getValue().toString(), token.getLine(), token.getColumn());
+                    errorMessage("VARNAME or NUMBER", token.getType().toString(), token.getLine(), token.getColumn());
                 }
             }
         }
@@ -398,34 +450,40 @@ public class Parser {
     *
     * @throws java.io.IOException
     */
-    private static void ifs() throws java.io.IOException{
+    private static void ifs(ParseTree parent) throws java.io.IOException{
         if(!error){
             if(verbose){
                 rulesText += "[26] <If> -> IF (<Cond>) THEN [EndLine] <Code> <If''>\n";
             }else{
-                rulesText += "26,";
+                rulesText += "26 ";
             }
+            ParseTree tree = new ParseTree(new Symbol(Labels.IF));
+            parent.addChild(tree);
             Symbol token = analyzer.nextToken();
             if(token.getType() == LexicalUnit.LPAREN){
-                token = cond();
+                tree.addChild(new ParseTree(token));
+                token = cond(tree);
                 if(token.getType() == LexicalUnit.RPAREN){
+                    tree.addChild(new ParseTree(token));
                     token = analyzer.nextToken();
                     if(token.getType() == LexicalUnit.THEN){
+                        tree.addChild(new ParseTree(token));
                         token = analyzer.nextToken();
                         if(token.getType() == LexicalUnit.ENDLINE){
-                                token = code();
-                                ifs2(token);
+                            tree.addChild(new ParseTree(token));
+                            token = code(tree);
+                            ifs2(tree, token);
                         }else{
-                                errorMessage("ENDLINE", token.getValue().toString(), token.getLine(), token.getColumn());
+                            errorMessage("ENDLINE", token.getType().toString(), token.getLine(), token.getColumn());
                         }
                     }else{
-                            errorMessage("THEN", token.getValue().toString(), token.getLine(), token.getColumn());
+                        errorMessage("THEN", token.getType().toString(), token.getLine(), token.getColumn());
                     }
                 }else{
-                    errorMessage(")", token.getValue().toString(), token.getLine(), token.getColumn());
+                    errorMessage("RPAREN", token.getType().toString(), token.getLine(), token.getColumn());
                 }
             }else{
-                errorMessage("(", token.getValue().toString(), token.getLine(), token.getColumn());
+                errorMessage("LPAREN", token.getType().toString(), token.getLine(), token.getColumn());
             }
         }            
     }
@@ -435,33 +493,40 @@ public class Parser {
     *
     * @throws java.io.IOException
     */
-    private static void ifs2(Symbol token) throws java.io.IOException{
+    private static void ifs2(ParseTree parent, Symbol token) throws java.io.IOException{
         if(!error){
+            ParseTree tree = new ParseTree(new Symbol(Labels.IF2));
+            parent.addChild(tree);
             if(token.getType() == LexicalUnit.ELSE){
                 if(verbose){
                     rulesText += "[28] <If''> -> ELSE [EndLine] <Code> ENDIF\n";
                 }else{
-                    rulesText += "28,";
+                    rulesText += "28 ";
                 }
+                tree.addChild(new ParseTree(token));
                 token = analyzer.nextToken();
                 if(token.getType() == LexicalUnit.ENDLINE){
-                    token = code();
+                    tree.addChild(new ParseTree(token));
+                    token = code(tree);
                     if(!error){
                         if(token.getType() != LexicalUnit.ENDIF){
-                                errorMessage("ENDIF", token.getValue().toString(), token.getLine(), token.getColumn());
+                            errorMessage("ENDIF", token.getType().toString(), token.getLine(), token.getColumn());
+                        }else{
+                            tree.addChild(new ParseTree(token));
                         }
                     }
                 }else{
-                    errorMessage("ENDLINE", token.getValue().toString(), token.getLine(), token.getColumn());
+                    errorMessage("ENDLINE", token.getType().toString(), token.getLine(), token.getColumn());
                 }
             }else if(token.getType() == LexicalUnit.ENDIF){
                 if(verbose){
                     rulesText += "[27] <If''> -> ENDIF\n";
                 }else{
-                    rulesText += "27,";
+                    rulesText += "27 ";
                 }
+                tree.addChild(new ParseTree(token));
             }else {
-                errorMessage("ELSE or ENDIF", token.getValue().toString(), token.getLine(), token.getColumn());
+                errorMessage("ELSE or ENDIF", token.getType().toString(), token.getLine(), token.getColumn());
             }
         }
     }
@@ -471,17 +536,19 @@ public class Parser {
     *
     * @throws java.io.IOException
     */
-    private static Symbol cond() throws java.io.IOException{
+    private static Symbol cond(ParseTree parent) throws java.io.IOException{
         Symbol token = new Symbol(LexicalUnit.EOS);
         if(!error){
             if(verbose){
                 rulesText += "[29] <Cond> -> <ExprArith> <Comp> <ExprArith>\n";
             }else{
-                rulesText += "29,";
+                rulesText += "29 ";
             }
-            token = exprArith();
-            comp(token);
-            token = exprArith();
+            ParseTree tree = new ParseTree(new Symbol(Labels.COND));
+            parent.addChild(tree);
+            token = exprArith(tree);
+            comp(tree, token);
+            token = exprArith(tree);
         }
         return token;
     }
@@ -491,22 +558,26 @@ public class Parser {
     *
     * @throws java.io.IOException
     */
-    private static void comp(Symbol token) throws java.io.IOException{
+    private static void comp(ParseTree parent, Symbol token) throws java.io.IOException{
         if(!error){
+            ParseTree tree = new ParseTree(new Symbol(Labels.COMP));
+            parent.addChild(tree);
             if(token.getType() == LexicalUnit.EQ){
                 if(verbose){
                     rulesText += "[30] <Comp> -> =\n";
                 }else{
-                    rulesText += "30,";
+                    rulesText += "30 ";
                 }
+                tree.addChild(new ParseTree(token));
             }else if(token.getType() == LexicalUnit.GT){
                 if(verbose){
                     rulesText += "[31] <Comp> -> >\n";
                 }else{
-                    rulesText += "31,";
+                    rulesText += "31 ";
                 }
+                tree.addChild(new ParseTree(token));
             }else{
-                errorMessage("= or >", token.getValue().toString(), token.getLine(), token.getColumn());
+                errorMessage("EQ or GT", token.getType().toString(), token.getLine(), token.getColumn());
             }
         }
     }
@@ -516,28 +587,35 @@ public class Parser {
     *
     * @throws java.io.IOException
     */
-    private static void whiles() throws java.io.IOException{
+    private static void whiles(ParseTree parent, Symbol token) throws java.io.IOException{
         if(!error){
             if(verbose){
                 rulesText += "[32] <While> -> WHILE (<Cond>) DO [EndLine] <Code> ENDWHILE\n";
             }else{
-                rulesText += "32,";
+                rulesText += "32 ";
             }
-            Symbol token = cond();
+            ParseTree tree = new ParseTree(new Symbol(Labels.WHILE));
+            parent.addChild(tree);
+            tree.addChild(new ParseTree(token));
+            token = cond(tree);
             if(token.getType() == LexicalUnit.DO){
+                tree.addChild(new ParseTree(token));
                 token = analyzer.nextToken();
                 if(token.getType() == LexicalUnit.ENDLINE){
-                    token = code();
+                    tree.addChild(new ParseTree(token));
+                    token = code(tree);
                     if(!error){
                         if(token.getType() != LexicalUnit.ENDWHILE){
-                            errorMessage("ENDWHILE", token.getValue().toString(), token.getLine(), token.getColumn());
+                            errorMessage("ENDWHILE", token.getType().toString(), token.getLine(), token.getColumn());
+                        }else{
+                            tree.addChild(new ParseTree(token));
                         }
                     }
                 }else{
-                    errorMessage("ENDLINE", token.getValue().toString(), token.getLine(), token.getColumn());
+                    errorMessage("ENDLINE", token.getType().toString(), token.getLine(), token.getColumn());
                 }
             }else{
-                    errorMessage("DO", token.getValue().toString(), token.getLine(), token.getColumn());
+                    errorMessage("DO", token.getType().toString(), token.getLine(), token.getColumn());
             }
         }
     }
@@ -547,31 +625,37 @@ public class Parser {
     *
     * @throws java.io.IOException
     */
-    private static void prints() throws java.io.IOException{
+    private static void prints(ParseTree parent) throws java.io.IOException{
         if(!error){
             if(verbose){
                 rulesText += "[33] <Print> -> PRINT([VarName])\n";
             }else{
-                rulesText += "33,";
+                rulesText += "33 ";
             }
+            ParseTree tree = new ParseTree(new Symbol(Labels.PRINT));
+            parent.addChild(tree);
             Symbol token = analyzer.nextToken();
             if(token.getType() == LexicalUnit.LPAREN){
+                tree.addChild(new ParseTree(token));
                 token = analyzer.nextToken();
                 if(token.getType() == LexicalUnit.VARNAME){
                     if(variables.containsKey(token.getValue().toString())){
+                        tree.addChild(new ParseTree(token));
                         token = analyzer.nextToken();
                         if(token.getType() != LexicalUnit.RPAREN){
-                            errorMessage(")", token.getValue().toString(), token.getLine(), token.getColumn());
-                        } 
+                            errorMessage("RPAREN", token.getType().toString(), token.getLine(), token.getColumn());
+                        }else{
+                            tree.addChild(new ParseTree(token));
+                        }
                     }else{
                         error = true;
-                        System.out.println("The variable: "+token.getValue().toString()+" has not been assigned");
+                        System.out.println("The variable: "+token.getType().toString()+" has not been assigned");
                     }
                 }else{
-                    errorMessage("variable", token.getValue().toString(), token.getLine(), token.getColumn());
+                    errorMessage("VARNAME", token.getType().toString(), token.getLine(), token.getColumn());
                 }
             }else{
-                    errorMessage("(", token.getValue().toString(), token.getLine(), token.getColumn());
+                    errorMessage("LPAREN", token.getType().toString(), token.getLine(), token.getColumn());
             }
         }
     }
@@ -581,27 +665,33 @@ public class Parser {
     *
     * @throws java.io.IOException
     */
-    private static void reads() throws java.io.IOException{
+    private static void reads(ParseTree parent) throws java.io.IOException{
         if(!error){
             if(verbose){
                 rulesText += "[34] <Read> -> READ([VarName])\n";
             }else{
-                rulesText += "34,";
+                rulesText += "34 ";
             }
+            ParseTree tree = new ParseTree(new Symbol(Labels.READ));
+            parent.addChild(tree);
             Symbol token = analyzer.nextToken();
             if(token.getType() == LexicalUnit.LPAREN){
+                tree.addChild(new ParseTree(token));
                 token = analyzer.nextToken();
                 if(token.getType() == LexicalUnit.VARNAME){
+                    tree.addChild(new ParseTree(token));
                     record(token.getValue().toString(), token.getLine());
                 }else{
-                    errorMessage("variable", token.getValue().toString(), token.getLine(), token.getColumn());
+                    errorMessage("VARNAME", token.getType().toString(), token.getLine(), token.getColumn());
                 }
                 token = analyzer.nextToken();
                 if(token.getType() != LexicalUnit.RPAREN){
-                    errorMessage(")", token.getValue().toString(), token.getLine(), token.getColumn());
+                    errorMessage("RPAREN", token.getType().toString(), token.getLine(), token.getColumn());
+                }else{
+                    tree.addChild(new ParseTree(token));
                 }
             }else{
-                errorMessage("(", token.getValue().toString(), token.getLine(), token.getColumn());
+                errorMessage("RPAREN", token.getType().toString(), token.getLine(), token.getColumn());
             }
         }
     }

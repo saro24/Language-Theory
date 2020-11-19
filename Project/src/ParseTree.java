@@ -39,18 +39,25 @@ public class ParseTree {
     }
 
     /**
+     * Adds a new tree as a child
+     */
+    public void addChild(ParseTree child) {
+        this.children.add(child);
+    }
+
+    /**
      * Writes the tree as LaTeX code
      */
     public String toLaTexTree() {
         StringBuilder treeTeX = new StringBuilder();
-        treeTeX.append("[");
-        treeTeX.append("{" + label.toTexString() + "}");
+        treeTeX.append("[ ");
+        treeTeX.append("{ " + label.toTexString() + " }");
         treeTeX.append(" ");
 
         for (ParseTree child : children) {
             treeTeX.append(child.toLaTexTree());
         }
-        treeTeX.append("]");
+        treeTeX.append(" ]");
         return treeTeX.toString();
     }
 

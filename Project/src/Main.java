@@ -25,7 +25,7 @@ public class Main{
     /**
     *Takes as input the file to be read and uses the generated Jflex code 
     * to output all the tokens that appear in the file while ignoring the comments
-    * @param args a file of code FORTR-S
+    * @param args a file of code FORTR-S and options for the execution
     *
     * @throws java.io.IOException if the file given doesn't exist
     */
@@ -43,14 +43,14 @@ public class Main{
               if(treeFile.endsWith(".tex")){
                 write = true;
               }else{
-                System.out.println("Error: The file given for the ParseTree is not the proper file type(expected file type: .tex).");
+                System.out.println("Error: The file given for the output of the ParseTree is not the proper file type(expected file type: .tex).");
               }
             }else{
               System.out.println("Error: No path given for the ParseTree file.");
             }
           }
         }
-        if(args[args.length-1].endsWith(.fs)){
+        if(args[args.length-1].endsWith(".fs")){
           File file = new File(".", args[args.length-1]);
           FileReader source = new FileReader(file);
           Parser.parse(source, verbose, write, treeFile);
