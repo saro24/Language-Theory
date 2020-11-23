@@ -1,0 +1,14 @@
+\documentclass[border=5pt]{standalone}
+
+\usepackage{tikz}
+\usepackage{forest}
+
+\begin{document}
+
+\begin{forest}for tree={rectangle, draw, l sep=20pt}[{S} [{PROGRAM} [{BEGINPROG BEGINPROG} ][{Some PROGNAME} ][{ENDLINE ENDLINE} ][{CODE} [{INSTRUCTION} [{ASSIGN} [{number VARNAME} ][{:= ASSIGN} ][{EXPRARITH} [{EXPRARITH1} [{MULTIPLICATION} [{MULTIPLICATION1} [{BRACKET} [{VAR} [{- MINUS} ][{VAR} [{- MINUS} ][{VAR} [{- MINUS} ][{VAR} [{- MINUS} ][{VAR} [{- MINUS} ][{VAR} [{- MINUS} ][{VAR} [{- MINUS} ][{VAR} [{1 NUMBER} ]]]]]]]]]]][{MULTIPLICATION2} [{null EOS} ]]]][{EXPRARITH2} [{null EOS} ]]]]]][{ENDPROG ENDPROG} ]][{null EOS} ]];
+\end{forest}
+
+\end{document}
+%% Local Variables:
+%% TeX-engine: pdflatex
+%% End:

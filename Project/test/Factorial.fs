@@ -14,5 +14,5 @@ IF (number > -1) THEN
   ELSE                      // The input number is negative
   result := -1
 ENDIF
-PRINT(result)
+PRINT (result)
 ENDPROG
