@@ -65,11 +65,18 @@ public class Symbol{
 		return this.column;
 	}
 
+	/**
+    * Returns the value and type of the Symbol if it's terminal 
+    * or the label if it's non-terminal
+	*
+    * @return the value and type of the Symbol if it's terminal 
+    * or the label if it's non-terminal
+    */
 	public String toTexString(){
 		if(this.isTerminal()){
 			final String value	= this.value != null? this.value.toString() : "null";
 			final String type	= this.type.toString();
-      		return String.format(value +"-"+ type);
+      		return String.format(value +" "+ type);
 		}
 		final String label	= this.lbl.toString();
       	return String.format(label);

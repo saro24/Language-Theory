@@ -1,3 +1,6 @@
+/**
+* Contains the types a token can take
+*/
 public enum LexicalUnit{
     BEGINPROG,
     PROGNAME,

@@ -1,3 +1,6 @@
+/**
+* Contains the labels of the profunction rules
+*/
 public enum Labels{
 	S,
 	PROGRAM,

@@ -34,12 +34,14 @@ public class Main{
         boolean verbose = false;
         boolean write = false;
         String treeFile = "";
+        //Check which options have been given from the terminal
         for(int i = 0; i< args.length-1;i++){
           if(args[i].equals("-v")){
             verbose = true;
           }else if(args[i].equals("-wt")){
             if(i < args.length-2){
               treeFile = args[i+1];
+              //Verify that the name of the file for the ParseTree is the right type
               if(treeFile.endsWith(".tex")){
                 write = true;
               }else{
@@ -50,6 +52,7 @@ public class Main{
             }
           }
         }
+        //Verify that the name of the file containing the code is the right type
         if(args[args.length-1].endsWith(".fs")){
           File file = new File(".", args[args.length-1]);
           FileReader source = new FileReader(file);
