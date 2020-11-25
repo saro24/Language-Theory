@@ -722,26 +722,38 @@ public class Parser {
             ParseTree tree = new ParseTree(new Symbol(Labels.WHILE));
             parent.addChild(tree);
             tree.addChild(new ParseTree(token));
-            token = cond(tree);
+            token = analyzer.nextToken();
             //Check if the next token matches the one expected by the rule
-            if(token.getType() == LexicalUnit.DO){
+            if(token.getType() == LexicalUnit.LPAREN){
                 tree.addChild(new ParseTree(token));
-                token = analyzer.nextToken();
-                if(token.getType() == LexicalUnit.ENDLINE){
+                token = cond(tree);
+                if(token.getType() == LexicalUnit.RPAREN){
                     tree.addChild(new ParseTree(token));
-                    token = code(tree);
-                    if(!error){
-                        if(token.getType() != LexicalUnit.ENDWHILE){
-                            errorMessage("ENDWHILE", token.getType().toString(), token.getLine(), token.getColumn());
-                        }else{
+                    token = analyzer.nextToken();
+                    if(token.getType() == LexicalUnit.DO){
+                        tree.addChild(new ParseTree(token));
+                        token = analyzer.nextToken();
+                        if(token.getType() == LexicalUnit.ENDLINE){
                             tree.addChild(new ParseTree(token));
+                            token = code(tree);
+                            if(!error){
+                                if(token.getType() != LexicalUnit.ENDWHILE){
+                                    errorMessage("ENDWHILE", token.getType().toString(), token.getLine(), token.getColumn());
+                                }else{
+                                    tree.addChild(new ParseTree(token));
+                                }
+                            }
+                        }else{
+                            errorMessage("ENDLINE", token.getType().toString(), token.getLine(), token.getColumn());
                         }
+                    }else{
+                            errorMessage("DO", token.getType().toString(), token.getLine(), token.getColumn());
                     }
                 }else{
-                    errorMessage("ENDLINE", token.getType().toString(), token.getLine(), token.getColumn());
+                    errorMessage("RPAREN", token.getType().toString(), token.getLine(), token.getColumn());
                 }
             }else{
-                    errorMessage("DO", token.getType().toString(), token.getLine(), token.getColumn());
+                errorMessage("LPAREN", token.getType().toString(), token.getLine(), token.getColumn());
             }
         }
     }
