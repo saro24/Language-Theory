@@ -522,6 +522,7 @@ public class Parser {
                     }else{
                         error = true;
                         System.out.println("Error at line "+token.getLine()+" and column "+token.getColumn()+": The variable "+token.getValue().toString()+" has not been initialized");
+                        System.exit(1);
                     }
                 }else if(token.getType() == LexicalUnit.NUMBER){
                     //Input the current rule in the list of rules that were used
@@ -796,6 +797,7 @@ public class Parser {
                     }else{
                         error = true;
                         System.out.println("Error at line "+token.getLine()+" and column "+token.getColumn()+": The variable "+token.getValue().toString()+" has not been initialized");
+                        System.exit(1);
                     }
                 }else{
                     errorMessage("VARNAME", token.getType().toString(), token.getLine(), token.getColumn());
@@ -862,6 +864,7 @@ public class Parser {
         error = true;
         errorText = "Error at line "+line+" at column "+column+ ": Expected " +expected+ " and instead received "+received;
         System.out.println(errorText);
+        System.exit(1);
     }
 
     /**
