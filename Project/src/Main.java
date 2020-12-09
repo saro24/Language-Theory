@@ -14,6 +14,15 @@ import java.util.SortedMap;
 *The main file of the compiler for the programming language FORTR-S
 */
 public class Main{
+    
+    /**
+    * Saves the variables that appear in the file in alphabetical order alongside the line
+    * they first appear in
+    */
+  private static SortedMap<String, Integer> variables = new TreeMap<>();
+  public static ParseTree root;
+    
+
     /**
     *Takes as input the file to be read and uses the generated Jflex code 
     * to output all the tokens that appear in the file while ignoring the comments
@@ -48,7 +57,7 @@ public class Main{
         if(args[args.length-1].endsWith(".fs")){
           File file = new File(".", args[args.length-1]);
           FileReader source = new FileReader(file);
-          Parser.parse(source, verbose, write, treeFile);
+          root = Parser.parse(source, verbose, write, treeFile);
         }else{
           System.out.println("Error: The source file given is not the proper file type(expected file type: .fs).");
         }
