@@ -16,7 +16,8 @@ import java.util.ArrayList;
 public class ParseTree {
     private Symbol label; // The label of the root of the tree
     private List<ParseTree> children; // Its children, which are trees themselves
-
+    
+    
     /**
      * Creates a singleton tree with only a root labeled by lbl.
      * 
@@ -45,6 +46,10 @@ public class ParseTree {
      */
     public void changeLabel(Symbol lbl) {
         this.label = lbl;
+    }
+    
+    public Symbol getLabel() { 
+    	return this.label ;
     }
 
     /**
