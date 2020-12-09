@@ -1,0 +1,21 @@
+
+public enum Abstracts {
+	PROGRAM,
+	CODE,
+	INSTRUCTION,
+	ASSIGN,
+	EXPRARITH,
+	PLUS,
+	TIMES, 
+	DIVIDE,
+	MINUS, 
+	BRACKET,
+	VAR,
+	IF,
+	COND,
+	VARNAME,
+	WHILE,
+	PRINT,
+	READ,
+	NUMBER
+}
