@@ -4,11 +4,14 @@ public class Symbol{
 	public static final Labels TERMINAL = null;
 	public static final LexicalUnit NONTERMINAL = null;
 	
+	
 	private final LexicalUnit type;
 	private final Labels lbl;
-	private final Object value;
+	// Temporary not final 
+	private  Object value;
 	private final int line,column;
-
+    private Abstracts abstracts ; 
+    
 	public Symbol(LexicalUnit unit,int line,int column,Object value,Labels label){
     	this.type	= unit;
 		this.line	= line+1;
@@ -41,6 +44,11 @@ public class Symbol{
 		this(NONTERMINAL,UNDEFINED_POSITION,UNDEFINED_POSITION,NO_VALUE, label);
 	}
 
+	public Symbol() { 
+		this(NONTERMINAL,UNDEFINED_POSITION,UNDEFINED_POSITION,NO_VALUE, TERMINAL);
+
+	}
+
 	public boolean isTerminal(){
 		return this.type != null;
 	}
@@ -64,7 +72,22 @@ public class Symbol{
 	public int getColumn(){
 		return this.column;
 	}
-
+	
+	public Labels getLabel() { 
+		return this.lbl ; 
+	}
+    
+	public void setAbstracts( Abstracts  abstracts ) { 
+		this.abstracts = abstracts ; 
+	}
+	
+	public Abstracts getAbstracts() { 
+		return this.abstracts ; 
+	}
+	// Temporary method 
+	public void setValue(Object value) { 
+		this.value = value ; 
+	}
 	/**
     * Returns the value and type of the Symbol if it's terminal 
     * or the label if it's non-terminal
