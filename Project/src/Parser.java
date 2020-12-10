@@ -41,7 +41,7 @@ public class Parser {
             rulesText += "1 ";
         }
         //Create the root Node that represents the ParseTree
-        root = new ParseTree(new Symbol(Labels.PROGRAM));
+        root = new ParseTree(new Symbol(LexicalUnit.PROGRAM));
         program(root);
         // System.out.println(rulesText);
         if(write){
@@ -102,7 +102,7 @@ public class Parser {
     * @throws java.io.IOException
     */
     private static Symbol code(ParseTree parent) throws java.io.IOException{
-        ParseTree tree = new ParseTree(new Symbol(Labels.CODE));
+        ParseTree tree = new ParseTree(new Symbol(LexicalUnit.CODE));
         parent.addChild(tree);
         Symbol token = analyzer.nextToken();
         while(token.getType() != LexicalUnit.ENDPROG & token.getType() != LexicalUnit.EOS & token.getType() != LexicalUnit.ENDWHILE & token.getType() != LexicalUnit.ENDIF & token.getType() != LexicalUnit.ELSE){
@@ -203,7 +203,7 @@ public class Parser {
             rulesText += "10 ";
         }
         //Create a new Node that represents the rule
-        ParseTree tree = new ParseTree(new Symbol(Labels.ASSIGN));
+        ParseTree tree = new ParseTree(new Symbol(LexicalUnit.ASSIGN));
         parent.addChild(tree);
         tree.addChild(new ParseTree(token));
         record(token.getValue().toString(), token.getLine());
@@ -233,7 +233,7 @@ public class Parser {
             rulesText += "11 ";
         }
         //Create a new Node that represents the rule
-        ParseTree tree = new ParseTree(new Symbol(Labels.EXPRARITH));
+        ParseTree tree = new ParseTree(new Symbol(LexicalUnit.EXPRARITH));
         parent.addChild(tree);
         Symbol token = exprArith1(tree);
         token = exprArith2(tree, token);
@@ -486,7 +486,7 @@ public class Parser {
             rulesText += "26 ";
         }
         //Create a new Node that represents the rule
-        ParseTree tree = new ParseTree(new Symbol(Labels.IF));
+        ParseTree tree = new ParseTree(new Symbol(LexicalUnit.IF));
         parent.addChild(tree);
         token = analyzer.nextToken();
         //Check if the next token matches the one expected by the rule
@@ -573,7 +573,7 @@ public class Parser {
             rulesText += "29 ";
         }
         //Create a new Node that represents the rule
-        ParseTree temp = new ParseTree(new Symbol(Labels.COND));
+        ParseTree temp = new ParseTree(new Symbol(LexicalUnit.COND));
         Symbol token = exprArith(temp);
         token = comp(token);
         ParseTree tree = new ParseTree(token);
@@ -629,7 +629,7 @@ public class Parser {
             rulesText += "32 ";
         }
         //Create a new Node that represents the rule
-        ParseTree tree = new ParseTree(new Symbol(Labels.WHILE));
+        ParseTree tree = new ParseTree(new Symbol(LexicalUnit.WHILE));
         parent.addChild(tree);
         token = analyzer.nextToken();
         //Check if the next token matches the one expected by the rule
@@ -674,7 +674,7 @@ public class Parser {
             rulesText += "33 ";
         }
         //Create a new Node that represents the rule
-        ParseTree tree = new ParseTree(new Symbol(Labels.PRINT));
+        ParseTree tree = new ParseTree(new Symbol(LexicalUnit.PRINT));
         parent.addChild(tree);
         token = analyzer.nextToken();
         //Check if the next token matches the one expected by the rule
@@ -716,7 +716,7 @@ public class Parser {
             rulesText += "34 ";
         }
         //Create a new Node that represents the rule
-        ParseTree tree = new ParseTree(new Symbol(Labels.READ));
+        ParseTree tree = new ParseTree(new Symbol(LexicalUnit.READ));
         parent.addChild(tree);
         token = analyzer.nextToken();
         //Check if the next token matches the one expected by the rule

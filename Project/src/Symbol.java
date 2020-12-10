@@ -1,60 +1,41 @@
 public class Symbol{
 	public static final int UNDEFINED_POSITION = -1;
 	public static final Object NO_VALUE = null;
-	public static final Labels TERMINAL = null;
-	public static final LexicalUnit NONTERMINAL = null;
 	
 	
 	private final LexicalUnit type;
-	private final Labels lbl;
-	// Temporary not final 
 	private  Object value;
 	private final int line,column;
-    private Abstracts abstracts ; 
     
-	public Symbol(LexicalUnit unit,int line,int column,Object value,Labels label){
+	public Symbol(LexicalUnit unit,int line,int column,Object value){
     	this.type	= unit;
 		this.line	= line+1;
 		this.column	= column;
 		this.value	= value;
-		this.lbl 	= label;	
-	}
-
-	public Symbol(LexicalUnit unit,int line,int column,Object value){
-		this(unit,line,column,value, TERMINAL);
 	}
 	
 	public Symbol(LexicalUnit unit,int line,int column){
-		this(unit,line,column,NO_VALUE, TERMINAL);
+		this(unit,line,column,NO_VALUE);
 	}
 	
 	public Symbol(LexicalUnit unit,int line){
-		this(unit,line,UNDEFINED_POSITION,NO_VALUE, TERMINAL);
+		this(unit,line,UNDEFINED_POSITION,NO_VALUE);
 	}
 	
 	public Symbol(LexicalUnit unit){
-		this(unit,UNDEFINED_POSITION,UNDEFINED_POSITION,NO_VALUE, TERMINAL);
+		this(unit,UNDEFINED_POSITION,UNDEFINED_POSITION,NO_VALUE);
 	}
 	
 	public Symbol(LexicalUnit unit,Object value){
-		this(unit,UNDEFINED_POSITION,UNDEFINED_POSITION,value, TERMINAL);
-	}
-
-	public Symbol(Labels label){
-		this(NONTERMINAL,UNDEFINED_POSITION,UNDEFINED_POSITION,NO_VALUE, label);
-	}
-
-	public Symbol() { 
-		this(NONTERMINAL,UNDEFINED_POSITION,UNDEFINED_POSITION,NO_VALUE, TERMINAL);
-
+		this(unit,UNDEFINED_POSITION,UNDEFINED_POSITION,value);
 	}
 
 	public boolean isTerminal(){
-		return this.type != null;
+		return this.value != null;
 	}
 	
 	public boolean isNonTerminal(){
-		return this.type == null;
+		return this.value == null;
 	}
 	
 	public LexicalUnit getType(){
@@ -72,18 +53,7 @@ public class Symbol{
 	public int getColumn(){
 		return this.column;
 	}
-	
-	public Labels getLabel() { 
-		return this.lbl ; 
-	}
-    
-	public void setAbstracts( Abstracts  abstracts ) { 
-		this.abstracts = abstracts ; 
-	}
-	
-	public Abstracts getAbstracts() { 
-		return this.abstracts ; 
-	}
+
 	// Temporary method 
 	public void setValue(Object value) { 
 		this.value = value ; 
@@ -97,11 +67,11 @@ public class Symbol{
     */
 	public String toTexString(){
 		if(this.isTerminal()){
-			final String value	= this.value != null? this.value.toString() : "null";
+			final String value	= this.value.toString();
 			final String type	= this.type.toString();
       		return String.format(value +" "+ type);
 		}
-		final String label	= this.lbl.toString();
+		final String label	= this.type.toString();
       	return String.format(label);
 	}
 	
