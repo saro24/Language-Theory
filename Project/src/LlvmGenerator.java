@@ -12,40 +12,132 @@ class Operation {
 		  
 	  }
 }
-/*  this class will generate LLVM from a given AST  each node represent a
- *   specific variables from the production rules  */ 
+ /*  this class will generate LLVM from a given AST  each node represent a
+ *   specific variables from the production rules  
+ */ 
 
 public class LlvmGenerator {
-	ParseTree root ; 
-    Abstracts lex ; 
-    String currentDir ; // in order to be able to access the LLvm code Directory 
     int counter ; 
 	public List<Operation> stack ;  // it would be used to insert the operation for a later display
+	PredefinedFunctions read_write ; 
 
-	public LlvmGenerator(ParseTree root ) { 
-		this.root = root ;  
+	public LlvmGenerator() { 
 		counter =0 ; 
-		this.stack  = new ArrayList<Operation> (); 
+		this.stack  = new ArrayList<Operation> (); // keeping track of the equations 
+		  this.read_write = new PredefinedFunctions(); 
 
     	}
+	   
+	    
+	    public Operation PROGRAM(ParseTree node) { 
+	    	  // calling the predefined read and write before the main 
+	    	 String equation = this.read_write.readWrite(); 
+	    	 this.stack.add(new Operation(equation, ""));
+		    	// Beginning  of the program 
+		      equation =  "define i32 @main() {\r\n" + 
+	    			     "entry: \r\n"; 
+	          this.stack.add(new Operation(equation , " ")); 
+
+	    	  try {  this.CODE(node.getChild(0));
+			    	// End of the program
+			    	equation = " ret i32 0\r\n" + 
+			    			"}\r\n"; 
+			    	this.stack.add( new Operation(equation, ""));
+			    	return null ; 
+
+	    	      }catch( IndexOutOfBoundsException e ) { 
+		    	   System.out.print("CALLING NON EXISTING CHILD");
+		    	 return null;
+		     }    	  
+	    }
+	    
+	    
+	    public Operation CODE(ParseTree node) { 
+ 	    	for(int i=0 ;  i < node.nbChildren() ; i++) { 
+	    		 LexicalUnit type  = node.getChild(i).getLabel().getType(); 
+	    		 if(type == LexicalUnit.ASSIGN)  this.ASSIGN(node.getChild(i));
+	    		 if(type == LexicalUnit.READ)  this.READ(node.getChild(i));
+	    		 if(type == LexicalUnit.PRINT)  this.PRINT(node.getChild(i));
+
+	    	}
+	    	
+	    	return null ; 
+	    	
+	    }
+	    
+	    public Operation COND(ParseTree node) { 
+	    	String equation = "" ; 
+	    	String result = ""; 
+	    	LexicalUnit type = node.getLabel().getType(); 
+	    	// since the comparison happens between two Arithmetics expressions 
+	    	Operation child1 = this.EXPRARITH(node.getChild(0)); 
+	    	Operation child2 = this.EXPRARITH(node.getChild(1));
+	    	if(type == LexicalUnit.GT) { 
+	    		equation = child1.equation + 
+	    				   child2.equation +
+	    				   "%"+this.counter() + "= icmp sgt i32 %"
+	    				    + child1.result + ", %"+child2.result    
+	    		            + "\r\n"; 
+	    	}else if(type == LexicalUnit.EQ) { 
+	    		equation = child1.equation + 
+	    				   child2.equation +
+	    				   "%"+this.counter() + "= icmp eq i32 %"
+	    				    + child1.result + ", %"+child2.result    
+	    		            + "\r\n"; 
+	    	}
+    		result = Integer.toString(this.counter); 
+    		Operation opr = new Operation(equation, result);
+    		this.stack.add(opr);
+    		return opr ; 
+	    }
+	    
+	    
+	    public Operation READ(ParseTree node) { 
+	    	String equation = ""; 
+	    	String result = ""; 
+	    	equation = "%"+this.VARNAME(node.getChild(0)) + 
+	    			    " = call i32 @readInt() \r\n"; 
+	    	Operation opr = new Operation(equation , result); 
+	    	this.stack.add(opr);
+	    	return opr ;
+	    }
+         
+	    public Operation PRINT(ParseTree node) { 
+	    	String equation = ""; 
+	    	String result = ""; 
+	    	equation = "call void @println(i32 %"+ this.VARNAME(node.getChild(0))+")\r\n"; 
+	    	Operation opr = new Operation(equation , result); 
+	    	this.stack.add(opr);
+	    	return opr ;
+	    }
+	    
+	    
 		public Operation  ASSIGN(ParseTree node) {
-		String equation = "" ; 
-		String result = ""; 
-		Operation opr ; 
-		
-		  String  var_name = this.VARNAME(node.getChild(0)); 
-          equation=  "%"+ var_name +  " = alloca i32  \r\n" + 
-        		  this.EXPRARITH(node.getChild(1)).equation +
-                 "  store i32 %" +this.EXPRARITH(node.getChild(1)).result+ " , i32* %"+var_name;
-          result = var_name ; 
-          opr = new Operation(equation , result);
-		 return opr; 
+		     try {
+				String equation = "" ; 
+				String result = ""; 
+				Operation opr ; 	
+				String  var_name = this.VARNAME(node.getChild(0)); 
+				Operation child =  this.EXPRARITH(node.getChild(1));
+		        equation=  "%"+ var_name +  " = alloca i32  \r\n" + 
+		        	    	 child.equation +
+		                  "store i32 %" +child.result+ " , i32* %"+var_name +"\r\n";
+		        result = var_name ; 
+		        opr = new Operation(equation , result);
+		        this.stack.add(opr);
+				return opr; 
+				 
+		     }catch( IndexOutOfBoundsException e ) { 
+		    	   System.out.print("CALLING NON EXISTING CHILD");
+		        	 return null;
+		     }
+			
     	}
 		
 		
 	
 		public String  VARNAME(ParseTree node) { 
-			return  node.getLabel().getValue().toString(); 
+ 			return  node.getLabel().getValue().toString(); 
 		}
 		
 		public String NUMBER(ParseTree node) { 
@@ -61,71 +153,11 @@ public class LlvmGenerator {
 		result  = Integer.toString(this.counter);
 		return new Operation(equation , result);
 	}
-	public Operation arithmetics (ParseTree node) { // this part only cover the mathematical arithmetics 
-		String result="" ; 
-		String equation=""; 
-		Abstracts type = node.getLabel().getAbstracts() ; 
-	
-				if(type== Abstracts.VARNAME  ) { 
-					
-					result = this.returnVar(node) ; 
-					equation = this.counter()+"load i32 , i32* %"+result+"\r\n" ; 
-					Operation opr = new Operation(equation , result);
-					this.stack.add(opr); 
-					return  opr ; 			
-					
-				}else 	if(type== Abstracts.NUMBER  ) { 
-					result = this.returnVar(node) ; 
-					Operation opr = new Operation("" , result);
-					this.stack.add(opr); 
-					return  opr ; 				
-
-				}else if( type==Abstracts.MINUS) { 				  	 
-						return this.MINUS(node) ; 				 
-				}else if(type ==Abstracts.PLUS) { 
-					
-					return this.PLUS(node) ; 				
-				}
-				 else if(type ==Abstracts.TIMES) { 
-						return this.TIMES(node) ; 
-								
-				}else if(type==Abstracts.DIVIDE) { 
-					return this.DIVIDE(node) ; 
-				}else { 
-					return new Operation( "", "");
-				}	
-
-	}
-	//addition
-	public Operation allEquations(ParseTree node , String type  ) {
-		String equation =""  ; 
-		String result = " "; 
-		for(int i= 0  ; i < node.nbChildren() ; i ++) { 
- 			
-			if(this.arithmetics(node.getChild(i)).equation.equals("") ) { 
-
-			  equation = equation 
-					  + "%" + this.counter()+ "= alloca i32 "+ "\r\n"
-					  + "store i32 " + this.arithmetics(node.getChild(i)).result + ", i32* %" +Integer.toString( this.counter) +"\r\n"
-					  + " %"+this.counter()+" = load i32 , i32*  %"+Integer.toString( this.counter-1)+"\r\n"
-			  		  ; 
- 		      } else { 
- 				  equation = equation + this.arithmetics(node.getChild(i)).equation
- 							+ " %"+this.counter()+" = load i32 , i32*  %"+ this.arithmetics(node.getChild(i)).result+"\r\n" ; 
- 		      }
-			
-		}
-		     equation = equation + "  %"+this.counter()+" = "+ type +" i32 %"+ Integer.toString(this.counter-1)+", i32 %"
-				 +Integer.toString(this.counter-2) +"\r\n" ;
-		     result = Integer.toString(this.counter-2) ;
-			Operation opr = new Operation(equation , result);
-			this.stack.add(opr); 		
-			return new Operation(equation , result);		
-		
-	}
+	//  addition
 	public Operation PLUS(ParseTree node) { 
 		return this.allEquations(node , "add"); 
 	}
+	// substruction 
 	public Operation  MINUS(ParseTree node) { 
 	 return this.allEquations(node , "sub"); 
 
@@ -139,10 +171,39 @@ public class LlvmGenerator {
 		 return this.allEquations(node , "sdiv"); 
 
 	}
-
+	
+	/*Since all equations are similar then this cover them all and only change the type 
+	* The concept lies on evaluating each child independently and appending 
+	* the equation that resulted in the child node to the parent node 
+	*/
+	public Operation allEquations(ParseTree node , String type  ) {
+		String equation =""  ; 
+		String result = " "; 
+		for(int i= 0  ; i < node.nbChildren() ; i ++) { 
+ 		  Operation childi = this.arithmetics(node.getChild(i)); // the ith child
+			if(this.arithmetics(node.getChild(i)).equation.equals("") ) { 
+			  equation = equation 
+					  + "%" + this.counter()+ "= alloca i32 "+ "\r\n"
+					  + "store i32 " + childi.result + ", i32* %" +Integer.toString( this.counter) +"\r\n"
+					  + " %"+this.counter()+" = load i32 , i32*  %"+Integer.toString( this.counter-1)+"\r\n"
+			  		  ; 
+ 		      } else { 
+ 				  equation = equation + childi.equation
+ 							+ " %"+this.counter()+" = load i32 , i32*  %"+ this.arithmetics(node.getChild(i)).result+"\r\n" ; 
+ 		      }
+			
+		}
+		     equation = equation + "  %"+this.counter()+" = "+ type +" i32 %"+ Integer.toString(this.counter-1)+", i32 %"
+			                        	+Integer.toString(this.counter-2) +"\r\n" ;
+		     result = Integer.toString(this.counter-2) ;
+			Operation opr = new Operation(equation , result);
+			this.stack.add(opr); 		
+			return new Operation(equation , result);		
+		
+	}
 	
 	private String  returnVar(ParseTree node) { 
-		if(node.getLabel().getAbstracts() == Abstracts.NUMBER)  return this.NUMBER(node); 
+		if(node.getLabel().getType() == LexicalUnit.NUMBER)  return this.NUMBER(node); 
 		else  return this.VARNAME(node); 
 	}
 	
@@ -155,5 +216,42 @@ public class LlvmGenerator {
 		
 		
 	}
+	// this part only cover the mathematical arithmetics 
+	public Operation arithmetics (ParseTree node) { 
+		String result="" ; 
+		String equation=""; 
+		LexicalUnit type = node.getLabel().getType() ; 
+ 
+				if(type== LexicalUnit.VARNAME  ) { 
+					result = this.returnVar(node) ; 
+					equation = this.counter()+"load i32 , i32* %"+result+"\r\n" ; 
+					Operation opr = new Operation(equation , result);
+					this.stack.add(opr); 
+					return  opr ; 			
+					
+				}else 	if(type== LexicalUnit.NUMBER  ) { 
+					result = this.returnVar(node) ; 
+					Operation opr = new Operation("" , result);
+					this.stack.add(opr); 
+					return  opr ; 				
+
+				}else if( type==LexicalUnit.MINUS) { 				  	 
+						return this.MINUS(node) ; 				 
+				}else if(type ==LexicalUnit.PLUS) { 
+					
+					return this.PLUS(node) ; 				
+				}
+				 else if(type ==LexicalUnit.TIMES) { 
+						return this.TIMES(node) ; 
+								
+				}else if(type==LexicalUnit.DIVIDE) { 
+					return this.DIVIDE(node) ; 
+				}else { 
+					return new Operation( "", "");
+				}	
+
+	}
+	
+
 	
 }
