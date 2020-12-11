@@ -3,7 +3,7 @@ public class Symbol{
 	public static final Object NO_VALUE = null;
 	
 	
-	private final LexicalUnit type;
+	private LexicalUnit type;
 	private  Object value;
 	private final int line,column;
     
@@ -29,7 +29,8 @@ public class Symbol{
 	public Symbol(LexicalUnit unit,Object value){
 		this(unit,UNDEFINED_POSITION,UNDEFINED_POSITION,value);
 	}
-
+    
+	 
 	public boolean isTerminal(){
 		return this.value != null;
 	}
@@ -40,6 +41,9 @@ public class Symbol{
 	
 	public LexicalUnit getType(){
 		return this.type;
+	}
+	public void setType(LexicalUnit type ) { 
+		this.type = type ; 
 	}
 	
 	public Object getValue(){
