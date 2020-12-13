@@ -32,24 +32,24 @@ public class Main{
     */
     public static void main(String[] args) throws java.io.IOException{
       if(args.length > 0){
-        boolean verbose = false;
+        boolean execution = false;
         boolean write = false;
-        String treeFile = "";
+        String outputFile = "";
         //Check which options have been given from the terminal
         for(int i = 0; i< args.length-1;i++){
-          if(args[i].equals("-v")){
-            verbose = true;
-          }else if(args[i].equals("-wt")){
+          if(args[i].equals("-exec")){
+            execution = true;
+          }else if(args[i].equals("-o")){
             if(i < args.length-2){
-              treeFile = args[i+1];
+              outputFile = args[i+1];
               //Verify that the name of the file for the ParseTree is the right type
-              if(treeFile.endsWith(".tex")){
+              if(outputFile.endsWith(".ll")){
                 write = true;
               }else{
-                System.out.println("Error: The file given for the output of the ParseTree is not the proper file type(expected file type: .tex).");
+                System.out.println("Error: The file given for the output is not the proper file type(expected file type: .ll).");
               }
             }else{
-              System.out.println("Error: No path given for the ParseTree file.");
+              System.out.println("Error: No path given for the output file.");
             }
           }
         }
@@ -57,7 +57,24 @@ public class Main{
         if(args[args.length-1].endsWith(".fs")){
           File file = new File(".", args[args.length-1]);
           FileReader source = new FileReader(file);
-          root = Parser.parse(source, verbose, write, treeFile);
+          root = Parser.parse(source);
+          LlvmGenerator llvm = new LlvmGenerator(exparith); 
+          llvm.PROGRAM(root);
+          if(execution){
+            System.out.println("Execute");
+          }else if(write){
+            File output = new File(".", outputFile);
+            output.createNewFile();
+            FileWriter writer = new FileWriter(output);
+            for(int i =0 ; i< llvm.stack.size() ; i ++ ) { 
+              output.write(llvm.stack.get(i).equation);
+            }
+            output.close();
+          }else{
+            for(int i =0 ; i< llvm.stack.size() ; i ++ ) { 
+              System.out.print(llvm.stack.get(i).equation);
+            }
+          }
         }else{
           System.out.println("Error: The source file given is not the proper file type(expected file type: .fs).");
         }

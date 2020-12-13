@@ -17,8 +17,6 @@ public class Parser {
 
     private static LexicalAnalyzer analyzer;//The Lexical Analyzer object
     private static SortedMap<String, Integer> variables = new TreeMap<>(); //The list containing the variables
-    private static boolean verbose = false; //Flag that signals the user has selected the verbose option
-    public static String rulesText = "";    //The rules that where used during the execution
     public static ParseTree root;           //The root of the parseTree of the execution
 
     /**
@@ -31,27 +29,11 @@ public class Parser {
     *
     * @throws java.io.IOException if the file given doesn't exist
     */
-    public static ParseTree parse(FileReader file, boolean verb, boolean write, String treeFile) throws java.io.IOException{
-        verbose = verb;
+    public static ParseTree parse(FileReader file) throws java.io.IOException{
         analyzer = new LexicalAnalyzer(file);
-        //Input the current rule in the list of rules that were used
-        if(verbose){
-            rulesText += "[1] <S> -> <Program>$\n";
-        }else{
-            rulesText += "1 ";
-        }
         //Create the root Node that represents the ParseTree
         root = new ParseTree(new Symbol(LexicalUnit.PROGRAM));
         program(root);
-        // System.out.println(rulesText);
-        if(write){
-            //Write the parseTree in the requested file if the option was given
-            File output = new File(".", treeFile);
-            output.createNewFile();
-            FileWriter writer = new FileWriter(output);
-            writer.write(root.toLaTeX());
-            writer.close();
-        }
         return root;
     }
 
@@ -63,12 +45,6 @@ public class Parser {
     * @throws java.io.IOException
     */
     private static void program(ParseTree parent) throws java.io.IOException{
-        //Input the current rule in the list of rules that were used
-        if(verbose){
-            rulesText += "[2] <Program> -> BEGINPROG [ProgName] [EndLine] <Code> ENDPROG\n";
-        }else{
-            rulesText += "2 ";
-        }
         //Create a new Node that represents the rule
         Symbol token = analyzer.nextToken();
         //Check if the next token matches the one expected by the rule
@@ -107,21 +83,10 @@ public class Parser {
         Symbol token = analyzer.nextToken();
         while(token.getType() != LexicalUnit.ENDPROG & token.getType() != LexicalUnit.EOS & token.getType() != LexicalUnit.ENDWHILE & token.getType() != LexicalUnit.ENDIF & token.getType() != LexicalUnit.ELSE){
             if(token.getType() != LexicalUnit.ENDLINE){
-                //Input the current rule in the list of rules that were used
-                if(verbose){
-                    rulesText += "[3] <Code> -> <Instruction> [EndLine] <Code>\n";
-                }else{
-                    rulesText += "3 ";
-                }
                 //Create a new Node that represents the rule
                 instruction(tree, token);
             }
             token = analyzer.nextToken();
-        }
-        if(verbose){
-            rulesText += "[4] <Code> -> e\n";
-        }else{
-            rulesText += "4 ";
         }
         return token;
     }
@@ -141,47 +106,22 @@ public class Parser {
         switch (tok){
         case VARNAME:
             //Input the current rule in the list of rules that were used
-            if(verbose){
-                rulesText += "[5] <Instruction> -> <Assign>\n";
-            }else{
-                rulesText += "5 ";
-            }
             assign(parent, token);
             break ;
         case IF:
             //Input the current rule in the list of rules that were used
-            if(verbose){
-                rulesText += "[6] <Instruction> -> <If>\n";
-            }else{
-                rulesText += "6 ";
-            }
             ifs(parent, token);
             break ;
         case WHILE:
             //Input the current rule in the list of rules that were used
-            if(verbose){
-                rulesText += "[7] <Instruction> -> <While>\n";
-            }else{
-                rulesText += "7 ";
-            }
             whiles(parent, token);
             break ;
         case PRINT:
             //Input the current rule in the list of rules that were used
-            if(verbose){
-                rulesText += "[8] <Instruction> -> <Print>\n";
-            }else{
-                rulesText += "8 ";
-            }
             prints(parent, token);
             break ;
         case READ:
             //Input the current rule in the list of rules that were used
-            if(verbose){
-                rulesText += "[9] <Instruction> -> <Read>\n";
-            }else{
-                rulesText += "9 ";
-            }
             reads(parent, token);
             break ;
         }
@@ -196,12 +136,6 @@ public class Parser {
     * @throws java.io.IOException
     */
     private static void assign(ParseTree parent, Symbol token) throws java.io.IOException{
-        //Input the current rule in the list of rules that were used
-        if(verbose){
-            rulesText += "[10] <Assign> -> [VarName] := <ExprArith>\n";
-        }else{
-            rulesText += "10 ";
-        }
         //Create a new Node that represents the rule
         ParseTree tree = new ParseTree(new Symbol(LexicalUnit.ASSIGN));
         parent.addChild(tree);
@@ -226,12 +160,6 @@ public class Parser {
     * @throws java.io.IOException 
     */
     private static Symbol exprArith(ParseTree parent) throws java.io.IOException{
-        //Input the current rule in the list of rules that were used
-        if(verbose){
-            rulesText += "[11] <ExprArith > -> <ExprArith'> < ExprArith''>\n";
-        }else{
-            rulesText += "11 ";
-        }
         //Create a new Node that represents the rule
         ParseTree tree = new ParseTree(new Symbol(LexicalUnit.EXPRARITH));
         parent.addChild(tree);
@@ -250,12 +178,6 @@ public class Parser {
     * @throws java.io.IOException
     */
     private static Symbol exprArith1(ParseTree parent) throws java.io.IOException{
-        //Input the current rule in the list of rules that were used
-        if(verbose){
-            rulesText += "[15] <ExprArith'> -> <Multiplication>\n";
-        }else{
-            rulesText += "15 ";
-        }
         //Create a new Node that represents the rule
         Symbol token = multiplication(parent);
         return token;
@@ -276,29 +198,13 @@ public class Parser {
         //Check if the next token matches one of the ones expected by the rule
         if(token.getType() == LexicalUnit.PLUS){
             //Input the current rule in the list of rules that were used
-            if(verbose){
-                rulesText += "[12] <ExprArith''> -> + <Multiplication>< ExprArith''>\n";
-            }else{
-                rulesText += "12 ";
-            }
             parent.changeLabel(token);
             token = multiplication(parent);
             token = exprArith2(parent, token);
         }else if(token.getType() == LexicalUnit.MINUS){
-            if(verbose){
-                rulesText += "[13] <ExprArith''> -> - <Multiplication>< ExprArith''>\n";
-            }else{
-                rulesText += "13 ";
-            }
             parent.changeLabel(token);
             token = multiplication(parent);
             token = exprArith2(parent, token);
-        }else{
-            if(verbose){
-                rulesText += "[14] <ExprArith''> -> e\n";
-            }else{
-                rulesText += "14 ";
-            }
         }
         return token;
     }
@@ -313,12 +219,6 @@ public class Parser {
     * @throws java.io.IOException
     */
     private static Symbol multiplication(ParseTree parent) throws java.io.IOException{
-        //Input the current rule in the list of rules that were used
-        if(verbose){
-            rulesText += "[16] <Multiplication> -> <Multiplication'> <Multiplication''>\n";
-        }else{
-            rulesText += "16 ";
-        }
         //Create a new Node that represents the rule
         multiplication1(parent);
         Symbol token = multiplication2(parent);
@@ -333,12 +233,6 @@ public class Parser {
     * @throws java.io.IOException
     */
     private static void multiplication1(ParseTree parent) throws java.io.IOException{
-        //Input the current rule in the list of rules that were used
-        if(verbose){
-            rulesText += "[20] <Multiplication'> -> <Bracket>\n";
-        }else{
-            rulesText += "20 ";
-        }
         //Create a new Node that represents the rule
         bracket(parent);
     }
@@ -357,32 +251,13 @@ public class Parser {
         Symbol token = analyzer.nextToken();
         //Check if the next token matches one of the ones expected by the rule
         if(token.getType() == LexicalUnit.TIMES){
-            //Input the current rule in the list of rules that were used
-            if(verbose){
-                rulesText += "[17] <Multiplication''> -> * <Braquet> <Multiplication''>\n";
-            }else{
-                rulesText += "17 ";
-            }
             parent.changeLabel(token);
             bracket(parent);
             token = multiplication2(parent);
         }else if(token.getType() == LexicalUnit.DIVIDE){
-            //Input the current rule in the list of rules that were used
-            if(verbose){
-                rulesText += "[18] <Multiplication''> -> / <Braquet> <Multiplication''>\n";
-            }else{
-                rulesText += "18 ";
-            }
             parent.changeLabel(token);
             bracket(parent);
             token = multiplication2(parent);
-        }else{
-            //Input the current rule in the list of rules that were used
-            if(verbose){
-                rulesText += "[19] <Multiplication''> -> e\n";
-            }else{
-                rulesText += "19 ";
-            }
         }
         return token;
     }
@@ -399,23 +274,11 @@ public class Parser {
         Symbol token = analyzer.nextToken();
         //Check if the next token matches the one expected by the rule
         if(token.getType() == LexicalUnit.LPAREN){
-            //Input the current rule in the list of rules that were used
-            if(verbose){
-                rulesText += "[21] <Bracket> -> (ExprArith)\n";
-            }else{
-                rulesText += "21 ";
-            }
             token = exprArith(parent);
             if(token.getType() != LexicalUnit.RPAREN){
                 errorMessage(")", token.getType().toString(), token.getLine(), token.getColumn());
             }
         }else{
-            //Input the current rule in the list of rules that were used
-            if(verbose){
-                rulesText += "[22] <Bracket> -> <Var>\n";
-            }else{
-                rulesText += "22 ";
-            }
             variable(parent, token);
         }
     }
@@ -432,12 +295,6 @@ public class Parser {
             //Create a new Node that represents the rule
         //Check if the next token matches one of the ones expected by the rule
         if(token.getType() == LexicalUnit.MINUS){
-            //Input the current rule in the list of rules that were used
-            if(verbose){
-                rulesText += "[25] <Var> -> - <Var>\n";
-            }else{
-                rulesText += "25 ";
-            }
             parent.addChild(new ParseTree(token));
             token = analyzer.nextToken();
             variable(parent, token);
@@ -445,24 +302,12 @@ public class Parser {
             if(token.getType() == LexicalUnit.VARNAME){
                 //Verify the variable has been initialised
                 if(variables.containsKey(token.getValue().toString())){
-                    //Input the current rule in the list of rules that were used
-                    if(verbose){
-                        rulesText += "[23] <Var> -> [VarName]\n";
-                    }else{
-                        rulesText += "23 ";
-                    }
                     parent.addChild(new ParseTree(token));
                 }else{
                     System.out.println("Error at line "+token.getLine()+" and column "+token.getColumn()+": The variable "+token.getValue().toString()+" has not been initialized");
                     System.exit(1);
                 }
             }else if(token.getType() == LexicalUnit.NUMBER){
-                //Input the current rule in the list of rules that were used
-                if(verbose){
-                    rulesText += "[24] <Var> -> [Number]\n";
-                }else{
-                    rulesText += "24 ";
-                }
                 parent.addChild(new ParseTree(token));
             }else{
                 errorMessage("VARNAME or NUMBER", token.getType().toString(), token.getLine(), token.getColumn());
@@ -479,12 +324,6 @@ public class Parser {
     * @throws java.io.IOException
     */
     private static void ifs(ParseTree parent, Symbol token) throws java.io.IOException{
-        //Input the current rule in the list of rules that were used
-        if(verbose){
-            rulesText += "[26] <If> -> IF (<Cond>) THEN [EndLine] <Code> <If''>\n";
-        }else{
-            rulesText += "26 ";
-        }
         //Create a new Node that represents the rule
         ParseTree tree = new ParseTree(new Symbol(LexicalUnit.IF));
         parent.addChild(tree);
@@ -525,12 +364,6 @@ public class Parser {
         //Create a new Node that represents the rule
         //Check if the next token matches the one expected by the rule
         if(token.getType() == LexicalUnit.ELSE){
-            //Input the current rule in the list of rules that were used
-            if(verbose){
-                rulesText += "[28] <If''> -> ELSE [EndLine] <Code> ENDIF\n";
-            }else{
-                rulesText += "28 ";
-            }
             ParseTree tree = new ParseTree(token);
             parent.addChild(tree);
             token = analyzer.nextToken();
@@ -543,12 +376,6 @@ public class Parser {
                 errorMessage("ENDLINE", token.getType().toString(), token.getLine(), token.getColumn());
             }
         }else if(token.getType() == LexicalUnit.ENDIF){
-            //Input the current rule in the list of rules that were used
-            if(verbose){
-                rulesText += "[27] <If''> -> ENDIF\n";
-            }else{
-                rulesText += "27 ";
-            }
             ParseTree tree = new ParseTree(token);
             parent.addChild(tree);
         }else {
@@ -566,12 +393,6 @@ public class Parser {
     * @throws java.io.IOException
     */
     private static Symbol cond(ParseTree parent) throws java.io.IOException{
-        //Input the current rule in the list of rules that were used
-        if(verbose){
-            rulesText += "[29] <Cond> -> <ExprArith> <Comp> <ExprArith>\n";
-        }else{
-            rulesText += "29 ";
-        }
         //Create a new Node that represents the rule
         ParseTree temp = new ParseTree(new Symbol(LexicalUnit.COND));
         Symbol token = exprArith(temp);
@@ -593,21 +414,7 @@ public class Parser {
     */
     private static Symbol comp(Symbol token) throws java.io.IOException{
         //Check if the next token matches one of the ones expected by the rule
-        if(token.getType() == LexicalUnit.EQ){
-            //Input the current rule in the list of rules that were used
-            if(verbose){
-                rulesText += "[30] <Comp> -> =\n";
-            }else{
-                rulesText += "30 ";
-            }
-        }else if(token.getType() == LexicalUnit.GT){
-            //Input the current rule in the list of rules that were used
-            if(verbose){
-                rulesText += "[31] <Comp> -> >\n";
-            }else{
-                rulesText += "31 ";
-            }
-        }else{
+        if(token.getType() != LexicalUnit.EQ && token.getType() != LexicalUnit.GT){
             errorMessage("EQ or GT", token.getType().toString(), token.getLine(), token.getColumn());
         }
         return token;
@@ -622,12 +429,6 @@ public class Parser {
     * @throws java.io.IOException
     */
     private static void whiles(ParseTree parent, Symbol token) throws java.io.IOException{
-        //Input the current rule in the list of rules that were used
-        if(verbose){
-            rulesText += "[32] <While> -> WHILE (<Cond>) DO [EndLine] <Code> ENDWHILE\n";
-        }else{
-            rulesText += "32 ";
-        }
         //Create a new Node that represents the rule
         ParseTree tree = new ParseTree(new Symbol(LexicalUnit.WHILE));
         parent.addChild(tree);
@@ -667,12 +468,6 @@ public class Parser {
     * @throws java.io.IOException
     */
     private static void prints(ParseTree parent, Symbol token) throws java.io.IOException{
-        //Input the current rule in the list of rules that were used
-        if(verbose){
-            rulesText += "[33] <Print> -> PRINT([VarName])\n";
-        }else{
-            rulesText += "33 ";
-        }
         //Create a new Node that represents the rule
         ParseTree tree = new ParseTree(new Symbol(LexicalUnit.PRINT));
         parent.addChild(tree);
@@ -709,12 +504,6 @@ public class Parser {
     * @throws java.io.IOException
     */
     private static void reads(ParseTree parent, Symbol token) throws java.io.IOException{
-        //Input the current rule in the list of rules that were used
-        if(verbose){
-            rulesText += "[34] <Read> -> READ([VarName])\n";
-        }else{
-            rulesText += "34 ";
-        }
         //Create a new Node that represents the rule
         ParseTree tree = new ParseTree(new Symbol(LexicalUnit.READ));
         parent.addChild(tree);
