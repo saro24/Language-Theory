@@ -1,8 +1,7 @@
 import java.io.File;
 import java.io.FileReader;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.SortedMap;
+import java.io.FileWriter;
+
 
 /** 
 * 
@@ -19,7 +18,6 @@ public class Main{
     * Saves the variables that appear in the file in alphabetical order alongside the line
     * they first appear in
     */
-  private static SortedMap<String, Integer> variables = new TreeMap<>();
   public static ParseTree root;
     
 
@@ -58,7 +56,7 @@ public class Main{
           File file = new File(".", args[args.length-1]);
           FileReader source = new FileReader(file);
           root = Parser.parse(source);
-          LlvmGenerator llvm = new LlvmGenerator(exparith); 
+          LlvmGenerator llvm = new LlvmGenerator(); 
           llvm.PROGRAM(root);
           if(execution){
             System.out.println("Execute");
@@ -67,9 +65,9 @@ public class Main{
             output.createNewFile();
             FileWriter writer = new FileWriter(output);
             for(int i =0 ; i< llvm.stack.size() ; i ++ ) { 
-              output.write(llvm.stack.get(i).equation);
+              writer.write(llvm.stack.get(i).equation) ;
             }
-            output.close();
+             writer.close();
           }else{
             for(int i =0 ; i< llvm.stack.size() ; i ++ ) { 
               System.out.print(llvm.stack.get(i).equation);

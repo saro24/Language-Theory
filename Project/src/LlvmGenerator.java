@@ -1,7 +1,5 @@
 import java.util.ArrayList;
-import java.util.List;
-
-
+import java.util.List; 
 // this  sub class is used to store the equation and the result 
 class Operation { 
 	  String result ; 
@@ -17,14 +15,16 @@ class Operation {
  */ 
 
 public class LlvmGenerator {
-    int counter ; 
-	public List<Operation> stack ;  // it would be used to insert the operation for a later display
+	int counter ; 
+	int counter2 ; 
+ 	public List<Operation> stack ;  // it would be used to insert the operation for a later display
 	PredefinedFunctions read_write ; 
-
+    
 	public LlvmGenerator() { 
-		counter =0 ; 
+		this.counter =0 ; 
 		this.stack  = new ArrayList<Operation> (); // keeping track of the equations 
-		  this.read_write = new PredefinedFunctions(); 
+		this.read_write = new PredefinedFunctions(); 
+		this.counter2 =0 ; // this counter would be used for labels in order to avoid repitition 
 
     	}
 	   
@@ -38,7 +38,8 @@ public class LlvmGenerator {
 	    			     "entry: \r\n"; 
 	          this.stack.add(new Operation(equation , " ")); 
 
-	    	  try {  this.CODE(node.getChild(0));
+	    	  try { 
+				   this.CODE(node.getChild(0));
 			    	// End of the program
 			    	equation = " ret i32 0\r\n" + 
 			    			"}\r\n"; 
@@ -53,19 +54,97 @@ public class LlvmGenerator {
 	    
 	    
 	    public Operation CODE(ParseTree node) { 
+ 			String equation = "" ; 
+		    Operation opr = new Operation("", "");
  	    	for(int i=0 ;  i < node.nbChildren() ; i++) { 
 	    		 LexicalUnit type  = node.getChild(i).getLabel().getType(); 
-	    		 if(type == LexicalUnit.ASSIGN)  this.ASSIGN(node.getChild(i));
-	    		 if(type == LexicalUnit.READ)  this.READ(node.getChild(i));
-	    		 if(type == LexicalUnit.PRINT)  this.PRINT(node.getChild(i));
+	    		 if(type == LexicalUnit.ASSIGN) equation += this.ASSIGN(node.getChild(i)).equation;
+	    		 if(type == LexicalUnit.READ)   equation += this.READ(node.getChild(i)).equation;
+				 if(type == LexicalUnit.PRINT)  equation += this.PRINT(node.getChild(i)).equation;
+				 if(type == LexicalUnit.IF)     equation += this.IF(node.getChild(i)).equation; 
+				 if(type == LexicalUnit.WHILE)  equation += this.WHILE(node.getChild(i)).equation; 
 
 	    	}
+		     opr = new Operation(equation , ""); 
+ 	    	return  opr;
 	    	
-	    	return null ; 
-	    	
-	    }
-	    
-	    public Operation COND(ParseTree node) { 
+		}
+		// The If condition 
+		public Operation IF(ParseTree node) { 
+		  try { 
+				String equation = " "; 
+				String result = " "; 
+				Operation opr  = new Operation(equation, result); 
+				this.counter2 ++;  // this counter helps avoid the labels repetition 
+				if(node.nbChildren() ==2) { 
+				  Operation cond = this.COND(node.getChild(0)); 
+				   equation = equation + cond.equation ;
+				   equation = equation + "br i1 %"+ cond.result+ 
+				   ", label %iftrue"+ Integer.toString(this.counter2)+
+				   ", label %iffalse"+ Integer.toString(this.counter2)+"  \n";
+				   this.counter(); // incrementing the counter just in case
+				   equation = "iftrue"+ Integer.toString(this.counter2)+": \n";
+				    opr  = new Operation(equation, result); 
+                    this.stack.add(opr); 
+				   this.CODE(node.getChild(1)); 
+				   equation =  "iffalse" + Integer.toString(this.counter2)+ ": \n";
+				   opr  = new Operation(equation, result); 
+				   this.stack.add(opr); 
+				  
+				}else if(node.nbChildren() ==3){
+					Operation cond = this.COND(node.getChild(0)); 
+					equation = equation + cond.equation ;
+					this.counter(); // incrementing the counter just in case
+
+					equation = equation + "br i1 %"+ cond.result+ 
+					", label %iftrue"+ Integer.toString(this.counter2)+
+					", label %iffalse"+ Integer.toString(this.counter2)+"  \n";
+					equation = equation + "iftrue"+ Integer.toString(this.counter2)+": \n";
+					opr = new Operation(equation , result);
+					this.stack.add(opr); 
+					this.CODE(node.getChild(1));
+					equation = "iffalse" + Integer.toString(this.counter2)+ ": \n";
+					opr = new Operation(equation , result);
+					this.stack.add(opr);  
+					// Accessing the code of the else                   
+					this.CODE(node.getChild(2).getChild(0));
+
+				}
+				
+				return opr ; 
+ 		    }catch( IndexOutOfBoundsException e ) { 
+		    	   System.out.print("CALLING NON EXISTING CHILD");
+		        	 return null;
+		     }
+		}
+		
+		public Operation WHILE(ParseTree node){ 
+			String equation =  " ";
+			String result = " ";
+			this.counter2++; 
+			Operation cond = this.COND(node.getChild(0)); 
+			equation = equation + cond.equation ;
+			equation = equation + "br i1 %"+ cond.result+ 
+			", label %innerWhile"+ Integer.toString(this.counter2)+
+			", label %outerWhile"+ Integer.toString(this.counter2)+"  \n";
+			 // incrementing the counter just in case
+			equation = equation + "innerWhile"+ Integer.toString(this.counter2)+": \n";
+			equation = equation + this.CODE(node.getChild(1)).equation; 
+			 // checking the condition once again 
+			 cond = this.COND(node.getChild(0)); 
+			 equation = equation + cond.equation ;
+			 equation = equation + "br i1 %"+ cond.result+ 
+			 ", label %innerWhile"+ Integer.toString(this.counter2)+
+			 ", label %outerWhile"+Integer.toString(this.counter2)+"  \n";
+ 
+			equation = equation + "outerWhile" + Integer.toString(this.counter2)+ ": \n";
+			Operation opr = new Operation(equation , result);
+			this.stack.add(opr);
+            return opr ; 
+
+		}
+
+	    public Operation COND(ParseTree node) {
 	    	String equation = "" ; 
 	    	String result = ""; 
 	    	LexicalUnit type = node.getLabel().getType(); 
@@ -87,7 +166,6 @@ public class LlvmGenerator {
 	    	}
     		result = Integer.toString(this.counter); 
     		Operation opr = new Operation(equation, result);
-    		this.stack.add(opr);
     		return opr ; 
 	    }
 	    
@@ -116,9 +194,17 @@ public class LlvmGenerator {
 		     try {
 				String equation = "" ; 
 				String result = ""; 
-				Operation opr ; 	
+				Operation opr ;
+			    Operation child = this.EXPRARITH(node.getChild(1));
 				String  var_name = this.VARNAME(node.getChild(0)); 
-				Operation child =  this.EXPRARITH(node.getChild(1));
+				if(node.getChild(1).getLabel().getType() ==LexicalUnit.MINUS ||
+				   node.getChild(1).getLabel().getType() ==LexicalUnit.PLUS||
+				   node.getChild(1).getLabel().getType() ==LexicalUnit.DIVIDE ||
+				   node.getChild(1).getLabel().getType() ==LexicalUnit.TIMES) { 
+                    child = this.EXPRARITH(node); 
+				}
+
+				 
 		        equation=  "%"+ var_name +  " = alloca i32  \r\n" + 
 		        	    	 child.equation +
 		                  "store i32 %" +child.result+ " , i32* %"+var_name +"\r\n";
@@ -147,9 +233,10 @@ public class LlvmGenerator {
 	public Operation EXPRARITH(ParseTree node) { 
 		String equation =""  ; 
 		String result = " "; 
+
 		for(int i= 0  ; i < node.nbChildren() ; i ++) {  
-			  this.arithmetics(node.getChild(i));
-		}
+ 			 equation +=  this.arithmetics(node.getChild(i)).equation +"\n";
+ 		}
 		result  = Integer.toString(this.counter);
 		return new Operation(equation , result);
 	}
@@ -180,25 +267,15 @@ public class LlvmGenerator {
 		String equation =""  ; 
 		String result = " "; 
 		for(int i= 0  ; i < node.nbChildren() ; i ++) { 
- 		  Operation childi = this.arithmetics(node.getChild(i)); // the ith child
-			if(this.arithmetics(node.getChild(i)).equation.equals("") ) { 
-			  equation = equation 
-					  + "%" + this.counter()+ "= alloca i32 "+ "\r\n"
-					  + "store i32 " + childi.result + ", i32* %" +Integer.toString( this.counter) +"\r\n"
-					  + " %"+this.counter()+" = load i32 , i32*  %"+Integer.toString( this.counter-1)+"\r\n"
-			  		  ; 
- 		      } else { 
+ 		    Operation childi = this.arithmetics(node.getChild(i)); // the ith child
  				  equation = equation + childi.equation
- 							+ " %"+this.counter()+" = load i32 , i32*  %"+ this.arithmetics(node.getChild(i)).result+"\r\n" ; 
- 		      }
-			
-		}
+ 							+ " %"+this.counter()+" = load i32 , i32*  %"+ childi.result+"\r\n" ; 	
+		    }
 		     equation = equation + "  %"+this.counter()+" = "+ type +" i32 %"+ Integer.toString(this.counter-1)+", i32 %"
 			                        	+Integer.toString(this.counter-2) +"\r\n" ;
 		     result = Integer.toString(this.counter-2) ;
 			Operation opr = new Operation(equation , result);
-			this.stack.add(opr); 		
-			return new Operation(equation , result);		
+ 			return opr;		
 		
 	}
 	
@@ -212,10 +289,9 @@ public class LlvmGenerator {
 	private String counter() { 
 		this.counter = this.counter +1 ; 
 		 String str = Integer.toString(this.counter) ; 
-		return str ; 
-		
-		
+		return str ; 	
 	}
+ 
 	// this part only cover the mathematical arithmetics 
 	public Operation arithmetics (ParseTree node) { 
 		String result="" ; 
@@ -224,18 +300,25 @@ public class LlvmGenerator {
  
 				if(type== LexicalUnit.VARNAME  ) { 
 					result = this.returnVar(node) ; 
-					equation = this.counter()+"load i32 , i32* %"+result+"\r\n" ; 
-					Operation opr = new Operation(equation , result);
-					this.stack.add(opr); 
-					return  opr ; 			
+					equation = equation 
+					+ "%" + this.counter()+ "= alloca i32 "+ "\r\n"
+					+ "store i32 %" + result+ ", i32* %" +Integer.toString( this.counter) +"\r\n"
+					+ " %"+this.counter()+" = load i32 , i32*  %"+Integer.toString( this.counter-1)+"\r\n"
+					  ; 
+					Operation opr = new Operation( equation, result);
+					return  opr ; 				
 					
 				}else 	if(type== LexicalUnit.NUMBER  ) { 
 					result = this.returnVar(node) ; 
-					Operation opr = new Operation("" , result);
-					this.stack.add(opr); 
+					equation = equation 
+					+ "%" + this.counter()+ "= alloca i32 "+ "\r\n"
+					+ "store i32 " + result+ ", i32* %" +Integer.toString( this.counter) +"\r\n"
+					+ " %"+this.counter()+" = load i32 , i32*  %"+Integer.toString( this.counter-1)+"\r\n"
+					  ; 
+					Operation opr = new Operation( equation, result);
 					return  opr ; 				
 
-				}else if( type==LexicalUnit.MINUS) { 				  	 
+				}else if( type==LexicalUnit.MINUS) { 	
 						return this.MINUS(node) ; 				 
 				}else if(type ==LexicalUnit.PLUS) { 
 					
