@@ -1,7 +1,9 @@
+import java.io.FileReader;
+import java.io.IOException;
 
 public class Main2 {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException{
 		 ParseTree   exparith, divide, two,  plus , plus2  , gt, eq 
 		           , six , one , assign , varname , varname2 , program , code, read , print;
 		 
@@ -13,9 +15,9 @@ public class Main2 {
 	 
 		 two.getLabel().setValue("2");
 		 
-		 plus = new ParseTree(new Symbol(LexicalUnit.PLUS , "+")) ; 
+		 plus = new ParseTree(new Symbol(LexicalUnit.MINUS, "-")) ; 
 
-		 plus2 = new ParseTree(new Symbol(LexicalUnit.PLUS , "+")) ; 
+		 plus2 = new ParseTree(new Symbol(LexicalUnit.MINUS , "-")) ; 
 
 		 six = new ParseTree(new Symbol(LexicalUnit.NUMBER,"6")) ; 
 		 one = new ParseTree(new Symbol(LexicalUnit.NUMBER,"1")) ; 
@@ -54,17 +56,19 @@ public class Main2 {
  		 
 	     
 	    // gt.addChild(exparith);
-	     //gt.addChild(exparith);
+		 //gt.addChild(exparith);
+		  String source = "../test/Factorial.fs";  
+		  FileReader file = new FileReader(source);
 
-		 LlvmGenerator llvm = new LlvmGenerator(); 
-		 llvm.PROGRAM(program);
-		 //llvm.COND(gt);
-		 //System.out.print(llvm.stack.size());
-
+		 ParseTree tree =  Parser.parse(file); 
+ 		 LlvmGenerator llvm = new LlvmGenerator(); 
+ 
+		   llvm.PROGRAM(tree);
+ 
 	     for(int i =0 ; i< llvm.stack.size() ; i ++ ) { 
 
-	    	 System.out.print( llvm.stack.get(i).equation);
-	     }
+			 System.out.print( llvm.stack.get(i).equation);
+ 	     }
 		 
 	}
 
