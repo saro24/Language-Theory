@@ -4,6 +4,10 @@ import java.util.List;
 class Operation { 
 	  String result ; 
 	  String equation ; 
+	  /*
+	   * this list would be used to store the var names that appear in the program
+	   * in order to avoid memory allocation for them 
+	  */
 	  public Operation(String equation , String result  ) { 
 		  this.equation = equation; 	
 		  this.result = result ; 
@@ -16,16 +20,19 @@ class Operation {
 
 public class LlvmGenerator {
 	int counter ; 
-	int counter2 ; 
+ 	int if_counter;
+	int while_counter; 
  	public List<Operation> stack ;  // it would be used to insert the operation for a later display
 	PredefinedFunctions read_write ; 
-    
+	ArrayList<String> varName_list; 
+
 	public LlvmGenerator() { 
 		this.counter =0 ; 
 		this.stack  = new ArrayList<Operation> (); // keeping track of the equations 
 		this.read_write = new PredefinedFunctions(); 
-		this.counter2 =0 ; // this counter would be used for labels in order to avoid repitition 
-
+		this.if_counter =0;  // this counter would be used for labels in order to avoid repitition 
+		this.while_counter = 0; 
+		this.varName_list = new ArrayList<String>();
     	}
 	   
 	    
@@ -75,35 +82,36 @@ public class LlvmGenerator {
 				String equation = " "; 
 				String result = " "; 
 				Operation opr  = new Operation(equation, result); 
-				this.counter2 ++;  // this counter helps avoid the labels repetition 
+				this.if_counter++;  // this counter helps avoid the labels repetition 
 				if(node.nbChildren() ==2) { 
 				  Operation cond = this.COND(node.getChild(0)); 
 				   equation = equation + cond.equation ;
 				   equation = equation + "br i1 %"+ cond.result+ 
-				   ", label %iftrue"+ Integer.toString(this.counter2)+
-				   ", label %iffalse"+ Integer.toString(this.counter2)+"  \n";
+				   ", label %iftrue"+ Integer.toString(this.if_counter)+
+				   ", label %iffalse"+ Integer.toString(this.if_counter)+"  \n";
 				   this.counter(); // incrementing the counter just in case
-				   equation = "iftrue"+ Integer.toString(this.counter2)+": \n";
+				   equation = "iftrue"+ Integer.toString(this.if_counter)+": \n";
 				    opr  = new Operation(equation, result); 
                     this.stack.add(opr); 
 				   this.CODE(node.getChild(1)); 
-				   equation =  "iffalse" + Integer.toString(this.counter2)+ ": \n";
+				   equation =  "iffalse" + Integer.toString(this.if_counter)+ ": \n";
 				   opr  = new Operation(equation, result); 
 				   this.stack.add(opr); 
 				  
 				}else if(node.nbChildren() ==3){
 					Operation cond = this.COND(node.getChild(0)); 
 					equation = equation + cond.equation ;
-					this.counter(); // incrementing the counter just in case
+
 
 					equation = equation + "br i1 %"+ cond.result+ 
-					", label %iftrue"+ Integer.toString(this.counter2)+
-					", label %iffalse"+ Integer.toString(this.counter2)+"  \n";
-					equation = equation + "iftrue"+ Integer.toString(this.counter2)+": \n";
+					", label %iftrue"+ Integer.toString(this.if_counter)+
+					", label %iffalse"+ Integer.toString(this.if_counter)+"  \n";
+					equation = equation + "iftrue"+ Integer.toString(this.if_counter)+": \n";
 					opr = new Operation(equation , result);
 					this.stack.add(opr); 
 					this.CODE(node.getChild(1));
-					equation = "iffalse" + Integer.toString(this.counter2)+ ": \n";
+					equation = "iffalse" + Integer.toString(this.if_counter)+ ": \n";
+
 					opr = new Operation(equation , result);
 					this.stack.add(opr);  
 					// Accessing the code of the else                   
@@ -121,23 +129,23 @@ public class LlvmGenerator {
 		public Operation WHILE(ParseTree node){ 
 			String equation =  " ";
 			String result = " ";
-			this.counter2++; 
+			this.while_counter++; 
 			Operation cond = this.COND(node.getChild(0)); 
 			equation = equation + cond.equation ;
 			equation = equation + "br i1 %"+ cond.result+ 
-			", label %innerWhile"+ Integer.toString(this.counter2)+
-			", label %outerWhile"+ Integer.toString(this.counter2)+"  \n";
+			", label %innerWhile"+ Integer.toString(this.while_counter)+
+			", label %outerWhile"+ Integer.toString(this.while_counter)+"  \n";
 			 // incrementing the counter just in case
-			equation = equation + "innerWhile"+ Integer.toString(this.counter2)+": \n";
+			equation = equation + "innerWhile"+ Integer.toString(this.while_counter)+": \n";
 			equation = equation + this.CODE(node.getChild(1)).equation; 
 			 // checking the condition once again 
 			 cond = this.COND(node.getChild(0)); 
 			 equation = equation + cond.equation ;
 			 equation = equation + "br i1 %"+ cond.result+ 
-			 ", label %innerWhile"+ Integer.toString(this.counter2)+
-			 ", label %outerWhile"+Integer.toString(this.counter2)+"  \n";
+			 ", label %innerWhile"+ Integer.toString(this.while_counter)+
+			 ", label %outerWhile"+Integer.toString(this.while_counter)+"  \n";
  
-			equation = equation + "outerWhile" + Integer.toString(this.counter2)+ ": \n";
+			equation = equation + "outerWhile" + Integer.toString(this.while_counter)+ ": \n";
 			Operation opr = new Operation(equation , result);
 			this.stack.add(opr);
             return opr ; 
@@ -172,9 +180,12 @@ public class LlvmGenerator {
 	    
 	    public Operation READ(ParseTree node) { 
 	    	String equation = ""; 
-	    	String result = ""; 
-	    	equation = "%"+this.VARNAME(node.getChild(0)) + 
-	    			    " = call i32 @readInt() \r\n"; 
+			String result = ""; 
+			String var_name = this.VARNAME(node.getChild(0)); 
+			equation="%"+ var_name+  " = alloca i32  \r\n" + 
+			          "%"+ this.counter()+" = call i32 @readInt() \r\n"+
+			          "store i32 %" +Integer.toString(this.counter)+ " , i32* %"+var_name +"\r\n";
+		    this.varName_list.add(var_name); 
 	    	Operation opr = new Operation(equation , result); 
 	    	this.stack.add(opr);
 	    	return opr ;
@@ -203,15 +214,25 @@ public class LlvmGenerator {
 				   node.getChild(1).getLabel().getType() ==LexicalUnit.TIMES) { 
                     child = this.EXPRARITH(node); 
 				}
+				// if the var name already exists then, the obtained result 
+				// is directly stored into it 
+				if(this.varName_list.contains(var_name)) { 
+					equation=  child.equation +
+			    	"store i32 %" +child.result+ " , i32* %"+var_name +"\r\n";
+ 				 	opr = new Operation(equation , " ");
+			  	} else {
+					// else the memory is allocated for it 
+			     	equation="%"+ var_name +  " = alloca i32  \r\n" + 
+							 child.equation +
+							"store i32 %" +child.result+ " , i32* %"+var_name +"\r\n";
+					result = var_name ; 
+				  this.varName_list.add(var_name);
+				  opr = new Operation(equation , result);
+				}
+				 this.stack.add(opr);
+			   
+			    return opr; 
 
-				 
-		        equation=  "%"+ var_name +  " = alloca i32  \r\n" + 
-		        	    	 child.equation +
-		                  "store i32 %" +child.result+ " , i32* %"+var_name +"\r\n";
-		        result = var_name ; 
-		        opr = new Operation(equation , result);
-		        this.stack.add(opr);
-				return opr; 
 				 
 		     }catch( IndexOutOfBoundsException e ) { 
 		    	   System.out.print("CALLING NON EXISTING CHILD");
@@ -262,6 +283,7 @@ public class LlvmGenerator {
 	/*Since all equations are similar then this cover them all and only change the type 
 	* The concept lies on evaluating each child independently and appending 
 	* the equation that resulted in the child node to the parent node 
+	* 
 	*/
 	public Operation allEquations(ParseTree node , String type  ) {
 		String equation =""  ; 
@@ -292,7 +314,11 @@ public class LlvmGenerator {
 		return str ; 	
 	}
  
-	// this part only cover the mathematical arithmetics 
+	/**  this part only cover the mathematical arithmetics 
+	* As one can see the arithmetics opration are not pushed 
+	* to the stack, because they would automatically be  pushed as a part 
+	* of the EXPARITH and ASSIGN 
+	**/
 	public Operation arithmetics (ParseTree node) { 
 		String result="" ; 
 		String equation=""; 
@@ -301,11 +327,10 @@ public class LlvmGenerator {
 				if(type== LexicalUnit.VARNAME  ) { 
 					result = this.returnVar(node) ; 
 					equation = equation 
-					+ "%" + this.counter()+ "= alloca i32 "+ "\r\n"
-					+ "store i32 %" + result+ ", i32* %" +Integer.toString( this.counter) +"\r\n"
-					+ " %"+this.counter()+" = load i32 , i32*  %"+Integer.toString( this.counter-1)+"\r\n"
+					+ " %"+this.counter()+" = load i32 , i32*  %"+result+"\r\n"
 					  ; 
-					Operation opr = new Operation( equation, result);
+					result = Integer.toString(this.counter);
+					Operation opr = new Operation( equation,result );
 					return  opr ; 				
 					
 				}else 	if(type== LexicalUnit.NUMBER  ) { 
