@@ -1,6 +1,15 @@
 import java.util.ArrayList;
 import java.util.List; 
-// this  sub class is used to store the equation and the result 
+/** 
+* 
+* @author Orestis Tranganidas
+* @author Sara Bouglam
+*/
+
+
+/* 
+ * This  sub class is used to store the equation and the result 
+*/
 class Operation { 
 	  String result ; 
 	  String equation ; 
@@ -14,9 +23,9 @@ class Operation {
 		  
 	  }
 }
- /*  this class will generate LLVM from a given AST  each node represent a
+ /*  This class will generate LLVM from a given AST  each node represent a
  *   specific variables from the production rules  
- */ 
+ **/ 
 
 public class LlvmGenerator {
 	int counter ; 
@@ -25,13 +34,16 @@ public class LlvmGenerator {
  	public List<Operation> stack ;  // it would be used to insert the operation for a later display
 	PredefinedFunctions read_write ; 
 	ArrayList<String> varName_list; 
+	int track_counter ; 
 
 	public LlvmGenerator() { 
 		this.counter =0 ; 
+	
 		this.stack  = new ArrayList<Operation> (); // keeping track of the equations 
 		this.read_write = new PredefinedFunctions(); 
 		this.if_counter =0;  // this counter would be used for labels in order to avoid repitition 
 		this.while_counter = 0; 
+		this.track_counter = 0 ; 
 		this.varName_list = new ArrayList<String>();
     	}
 	   
@@ -59,7 +71,7 @@ public class LlvmGenerator {
 		     }    	  
 	    }
 	    
-	    
+	    // The code
 	    public Operation CODE(ParseTree node) { 
  			String equation = "" ; 
 		    Operation opr = new Operation("", "");
@@ -89,8 +101,7 @@ public class LlvmGenerator {
 				   equation = equation + "br i1 %"+ cond.result+ 
 				   ", label %iftrue"+ Integer.toString(this.if_counter)+
 				   ", label %iffalse"+ Integer.toString(this.if_counter)+"  \n";
-				   this.counter(); // incrementing the counter just in case
-				   equation = "iftrue"+ Integer.toString(this.if_counter)+": \n";
+ 				   equation = "iftrue"+ Integer.toString(this.if_counter)+": \n";
 				    opr  = new Operation(equation, result); 
                     this.stack.add(opr); 
 				   this.CODE(node.getChild(1)); 
@@ -107,8 +118,12 @@ public class LlvmGenerator {
 					", label %iftrue"+ Integer.toString(this.if_counter)+
 					", label %iffalse"+ Integer.toString(this.if_counter)+"  \n";
 					equation = equation + "iftrue"+ Integer.toString(this.if_counter)+": \n";
-					opr = new Operation(equation , result);
-					this.stack.add(opr); 
+				
+				    opr = new Operation(equation , result);
+					this.stack.add(opr); 	
+					/* the Equation and the new operation should be separated since the code 
+					 *  function content will be  pushed to the stack
+					 */
 					this.CODE(node.getChild(1));
 					equation = "iffalse" + Integer.toString(this.if_counter)+ ": \n";
 
@@ -129,7 +144,8 @@ public class LlvmGenerator {
 		public Operation WHILE(ParseTree node){ 
 			String equation =  " ";
 			String result = " ";
-			this.while_counter++; 
+			this.while_counter++;
+			Operation opr ;
 			Operation cond = this.COND(node.getChild(0)); 
 			equation = equation + cond.equation ;
 			equation = equation + "br i1 %"+ cond.result+ 
@@ -137,16 +153,21 @@ public class LlvmGenerator {
 			", label %outerWhile"+ Integer.toString(this.while_counter)+"  \n";
 			 // incrementing the counter just in case
 			equation = equation + "innerWhile"+ Integer.toString(this.while_counter)+": \n";
-			equation = equation + this.CODE(node.getChild(1)).equation; 
-			 // checking the condition once again 
+			opr = new Operation(equation , result);
+			this.stack.add(opr);
+			 this.CODE(node.getChild(1)); 
 			 cond = this.COND(node.getChild(0)); 
-			 equation = equation + cond.equation ;
+			 equation =  cond.equation ;
+			 // checking the condition once again 
+			 // if the condition is not satisfied then it gets to the inner loop 
+			 // else it is moved to the outer loop which is the end of loop 
+
 			 equation = equation + "br i1 %"+ cond.result+ 
 			 ", label %innerWhile"+ Integer.toString(this.while_counter)+
 			 ", label %outerWhile"+Integer.toString(this.while_counter)+"  \n";
  
 			equation = equation + "outerWhile" + Integer.toString(this.while_counter)+ ": \n";
-			Operation opr = new Operation(equation , result);
+			opr = new Operation(equation , result);
 			this.stack.add(opr);
             return opr ; 
 
@@ -172,7 +193,7 @@ public class LlvmGenerator {
 	    				    + child1.result + ", %"+child2.result    
 	    		            + "\r\n"; 
 	    	}
-    		result = Integer.toString(this.counter); 
+    		result = "v"+Integer.toString(this.counter); 
     		Operation opr = new Operation(equation, result);
     		return opr ; 
 	    }
@@ -184,7 +205,7 @@ public class LlvmGenerator {
 			String var_name = this.VARNAME(node.getChild(0)); 
 			equation="%"+ var_name+  " = alloca i32  \r\n" + 
 			          "%"+ this.counter()+" = call i32 @readInt() \r\n"+
-			          "store i32 %" +Integer.toString(this.counter)+ " , i32* %"+var_name +"\r\n";
+			          "store i32 %v" +Integer.toString(this.counter)+ " , i32* %"+var_name +"\r\n";
 		    this.varName_list.add(var_name); 
 	    	Operation opr = new Operation(equation , result); 
 	    	this.stack.add(opr);
@@ -258,7 +279,7 @@ public class LlvmGenerator {
 		for(int i= 0  ; i < node.nbChildren() ; i ++) {  
  			 equation +=  this.arithmetics(node.getChild(i)).equation +"\n";
  		}
-		result  = Integer.toString(this.counter);
+		result  = "v"+Integer.toString(this.counter);
 		return new Operation(equation , result);
 	}
 	//  addition
@@ -293,9 +314,9 @@ public class LlvmGenerator {
  				  equation = equation + childi.equation
  							+ " %"+this.counter()+" = load i32 , i32*  %"+ childi.result+"\r\n" ; 	
 		    }
-		     equation = equation + "  %"+this.counter()+" = "+ type +" i32 %"+ Integer.toString(this.counter-1)+", i32 %"
+		     equation = equation + "  %"+this.counter()+" = "+ type +" i32 %v"+ Integer.toString(this.counter-1)+", %v"
 			                        	+Integer.toString(this.counter-2) +"\r\n" ;
-		     result = Integer.toString(this.counter-2) ;
+		     result = "v"+Integer.toString(this.counter-2) ;
 			Operation opr = new Operation(equation , result);
  			return opr;		
 		
@@ -306,11 +327,14 @@ public class LlvmGenerator {
 		else  return this.VARNAME(node); 
 	}
 	
-	// this counter used in order to avoid variables repetition since this note allowed in LLvm in 
+	// This counter used in order to avoid variables repetition since this note allowed in LLvm in 
 	// each time it'is incremented when needed 
 	private String counter() { 
-		this.counter = this.counter +1 ; 
-		 String str = Integer.toString(this.counter) ; 
+		if(this.track_counter!=0 ){
+		  this.counter = this.counter +1 ; 
+		}
+		String str = "v"+Integer.toString(this.counter) ; 
+		this.track_counter = this.track_counter+ 1 ; 
 		return str ; 	
 	}
  
@@ -329,7 +353,7 @@ public class LlvmGenerator {
 					equation = equation 
 					+ " %"+this.counter()+" = load i32 , i32*  %"+result+"\r\n"
 					  ; 
-					result = Integer.toString(this.counter);
+					//result ="v"+Integer.toString(this.counter);
 					Operation opr = new Operation( equation,result );
 					return  opr ; 				
 					
@@ -337,8 +361,8 @@ public class LlvmGenerator {
 					result = this.returnVar(node) ; 
 					equation = equation 
 					+ "%" + this.counter()+ "= alloca i32 "+ "\r\n"
-					+ "store i32 " + result+ ", i32* %" +Integer.toString( this.counter) +"\r\n"
-					+ " %"+this.counter()+" = load i32 , i32*  %"+Integer.toString( this.counter-1)+"\r\n"
+					+ "store i32 " + result+ ", i32* %v" +Integer.toString( this.counter) +"\r\n"
+					+ " %"+this.counter()+" = load i32 , i32*  %v"+Integer.toString( this.counter-1)+"\r\n"
 					  ; 
 					Operation opr = new Operation( equation, result);
 					return  opr ; 				
